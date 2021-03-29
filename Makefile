@@ -14,7 +14,7 @@ CURL    ?= curl
 
 # Cgo
 
-CGO_ENABLED ?= 0
+CGO_ENABLED ?= 1
 
 # Go modules
 
