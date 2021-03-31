@@ -20,6 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"stash.kopano.io/kgol/kidm/server/handler"
+	"stash.kopano.io/kgol/kidm/server/handler/ldif"
 )
 
 // Server is our server implementation.
@@ -68,7 +69,7 @@ func (s *Server) Serve(ctx context.Context) error {
 		logger.WithFields(logrus.Fields{}).Infoln("ready")
 	}()
 
-	s.LDAPHandler, err = handler.NewLDIFHandler(logger, s.config.LDIFSource, s.config.LDAPBaseDN)
+	s.LDAPHandler, err = ldif.NewLDIFHandler(logger, s.config.LDIFSource, s.config.LDAPBaseDN)
 	if err != nil {
 		return fmt.Errorf("failed create create LDIF source handler: %w", err)
 	}
