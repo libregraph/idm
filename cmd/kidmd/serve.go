@@ -25,6 +25,7 @@ var (
 	defaultLDAPBaseDN     = ""
 
 	defaultLDIFSource = ""
+	defaultLDIFConfig = ""
 )
 
 func commandServe() *cobra.Command {
@@ -47,6 +48,7 @@ func commandServe() *cobra.Command {
 	serveCmd.Flags().StringVar(&defaultLDAPBaseDN, "ldap-base-dn", defaultLDAPBaseDN, "BaseDN for LDAP requests")
 
 	serveCmd.Flags().StringVar(&defaultLDIFSource, "source-ldif", defaultLDIFSource, "Path to an LDIF file loaded on startup")
+	serveCmd.Flags().StringVar(&defaultLDIFConfig, "config-ldif", defaultLDIFConfig, "Path to an LDIF file loaded on startup, this LDIF file is used for bind only")
 
 	return serveCmd
 }
@@ -68,6 +70,7 @@ func serve(cmd *cobra.Command, args []string) error {
 		LDAPBaseDN:     defaultLDAPBaseDN,
 
 		LDIFSource: defaultLDIFSource,
+		LDIFConfig: defaultLDIFConfig,
 
 		OnReady: func(srv *server.Server) {
 			if defaultSystemdNotify {

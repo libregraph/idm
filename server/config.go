@@ -17,6 +17,7 @@ type Config struct {
 	LDAPBaseDN     string
 
 	LDIFSource string
+	LDIFConfig string
 
 	OnReady func(*Server)
 }

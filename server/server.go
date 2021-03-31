@@ -71,7 +71,14 @@ func (s *Server) Serve(ctx context.Context) error {
 
 	s.LDAPHandler, err = ldif.NewLDIFHandler(logger, s.config.LDIFSource, s.config.LDAPBaseDN)
 	if err != nil {
-		return fmt.Errorf("failed create create LDIF source handler: %w", err)
+		return fmt.Errorf("failed to create LDIF source handler: %w", err)
+	}
+	if s.config.LDIFConfig != "" {
+		middleware, middlewareErr := ldif.NewLDIFMiddleware(logger, s.config.LDIFConfig, s.config.LDAPBaseDN)
+		if middlewareErr != nil {
+			return fmt.Errorf("failed to create LDIF config handler: %w", middlewareErr)
+		}
+		s.LDAPHandler = middleware.WithHandler(s.LDAPHandler)
 	}
 
 	ldapListener, listenErr := net.Listen("tcp", s.config.LDAPListenAddr)

@@ -36,6 +36,11 @@ func newIndexMap() indexMap {
 	return make(indexMap)
 }
 
+type Index interface {
+	Add(name, op string, values []string, entry *ldifEntry) bool
+	Load(name, op, value string) ([]*ldifEntry, bool)
+}
+
 type indexMapRegister map[string]indexMap
 
 func newIndexMapRegister() indexMapRegister {
@@ -57,7 +62,7 @@ func (imr indexMapRegister) getKey(name, op string) string {
 	return strings.ToLower(name) + "," + op
 }
 
-func (imr indexMapRegister) add(name, op string, values []string, entry *ldifEntry) bool {
+func (imr indexMapRegister) Add(name, op string, values []string, entry *ldifEntry) bool {
 	index, ok := imr[imr.getKey(name, op)]
 	if !ok {
 		return false
@@ -69,7 +74,7 @@ func (imr indexMapRegister) add(name, op string, values []string, entry *ldifEnt
 	return true
 }
 
-func (imr indexMapRegister) load(name, op, value string) ([]*ldifEntry, bool) {
+func (imr indexMapRegister) Load(name, op, value string) ([]*ldifEntry, bool) {
 	index, ok := imr[imr.getKey(name, op)]
 	if !ok {
 		return nil, false

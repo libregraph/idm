@@ -6,7 +6,17 @@
 package handler
 
 import (
-	glauthHandler "github.com/glauth/glauth/pkg/handler"
+	"github.com/nmcclain/ldap"
 )
 
-type Handler glauthHandler.Handler
+// Interface for handlers.
+type Handler interface {
+	ldap.Binder
+	ldap.Searcher
+	ldap.Closer
+}
+
+// Interface for middlewares.
+type Middleware interface {
+	WithHandler(next Handler) Handler
+}
