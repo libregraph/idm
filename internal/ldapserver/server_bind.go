@@ -70,6 +70,6 @@ func encodeBindResponse(messageID int64, ldapResultCode LDAPResultCode) *ber.Pac
 
 	responsePacket.AppendChild(bindReponse)
 
-	ber.PrintPacket(responsePacket)
+	// ber.PrintPacket(responsePacket)
 	return responsePacket
 }

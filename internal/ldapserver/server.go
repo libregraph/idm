@@ -16,7 +16,7 @@ type Binder interface {
 	Bind(bindDN, bindSimplePw string, conn net.Conn) (LDAPResultCode, error)
 }
 type Searcher interface {
-	Search(boundDN string, req ldap.SearchRequest, conn net.Conn) (ServerSearchResult, error)
+	Search(boundDN string, req *ldap.SearchRequest, conn net.Conn) (ServerSearchResult, error)
 }
 
 /*
@@ -269,8 +269,8 @@ handler:
 			}
 		}
 
-		log.Printf("DEBUG: handling operation: %s [%d]", ldap.ApplicationMap[uint8(req.Tag)], req.Tag)
-		ber.PrintPacket(packet) // DEBUG
+		// log.Printf("DEBUG: handling operation: %s [%d]", ldap.ApplicationMap[uint8(req.Tag)], req.Tag)
+		// ber.PrintPacket(packet) // DEBUG
 
 		// dispatch the LDAP operation
 		switch req.Tag { // ldap op code
@@ -299,16 +299,16 @@ handler:
 			}
 		case ldap.ApplicationSearchRequest:
 			server.Stats.countSearches(1)
-			if err := HandleSearchRequest(req, &controls, messageID, boundDN, server, conn); err != nil {
+			if doneControls, err := HandleSearchRequest(req, &controls, messageID, boundDN, server, conn); err != nil {
 				log.Printf("handleSearchRequest error %s", err.Error()) // TODO: make this more testable/better err handling - stop using log, stop using breaks?
 				e := err.(*ldap.Error)
-				if err = sendPacket(conn, encodeSearchDone(messageID, LDAPResultCode(e.ResultCode))); err != nil {
+				if err = sendPacket(conn, encodeSearchDone(messageID, LDAPResultCode(e.ResultCode), doneControls)); err != nil {
 					log.Printf("sendPacket error %s", err.Error())
 					break handler
 				}
 				break handler
 			} else {
-				if err = sendPacket(conn, encodeSearchDone(messageID, ldap.LDAPResultSuccess)); err != nil {
+				if err = sendPacket(conn, encodeSearchDone(messageID, ldap.LDAPResultSuccess, doneControls)); err != nil {
 					log.Printf("sendPacket error %s", err.Error())
 					break handler
 				}
@@ -418,7 +418,7 @@ type defaultHandler struct {
 func (h defaultHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (LDAPResultCode, error) {
 	return ldap.LDAPResultInvalidCredentials, nil
 }
-func (h defaultHandler) Search(boundDN string, req ldap.SearchRequest, conn net.Conn) (ServerSearchResult, error) {
+func (h defaultHandler) Search(boundDN string, req *ldap.SearchRequest, conn net.Conn) (ServerSearchResult, error) {
 	return ServerSearchResult{make([]*ldap.Entry, 0), []string{}, []ldap.Control{}, ldap.LDAPResultSuccess}, nil
 }
 

@@ -348,57 +348,35 @@ func ServerApplyFilter(f *ber.Packet, entry *ldap.Entry) (bool, LDAPResultCode) 
 	return false, ldap.LDAPResultSuccess
 }
 
-func GetFilterObjectClass(filter string) (string, error) {
-	f, err := CompileFilter(filter)
-	if err != nil {
-		return "", err
+func ServerFilterScope(baseDN string, scope int, entry *ldap.Entry) (bool, LDAPResultCode) {
+	// constrained search scope
+	switch scope {
+	case ldap.ScopeWholeSubtree: // The scope is constrained to the entry named by baseObject and to all its subordinates.
+	case ldap.ScopeBaseObject: // The scope is constrained to the entry named by baseObject.
+		if entry.DN != baseDN {
+			return false, ldap.LDAPResultSuccess
+		}
+	case ldap.ScopeSingleLevel: // The scope is constrained to the immediate subordinates of the entry named by baseObject.
+		parts := strings.Split(entry.DN, ",")
+		if len(parts) < 2 && entry.DN != baseDN {
+			return false, ldap.LDAPResultSuccess
+		}
+		if dn := strings.Join(parts[1:], ","); dn != baseDN {
+			return false, ldap.LDAPResultSuccess
+		}
 	}
-	return parseFilterObjectClass(f)
-}
-func parseFilterObjectClass(f *ber.Packet) (string, error) {
-	objectClass := ""
-	switch FilterMap[uint8(f.Tag)] {
-	case "Equality Match":
-		if len(f.Children) != 2 {
-			return "", errors.New("Equality match must have only two children")
-		}
-		attribute := strings.ToLower(f.Children[0].Value.(string))
-		value := f.Children[1].Value.(string)
-		if attribute == "objectclass" {
-			objectClass = strings.ToLower(value)
-		}
-	case "And":
-		for _, child := range f.Children {
-			subType, err := parseFilterObjectClass(child)
-			if err != nil {
-				return "", err
-			}
-			if len(subType) > 0 {
-				objectClass = subType
-			}
-		}
-	case "Or":
-		for _, child := range f.Children {
-			subType, err := parseFilterObjectClass(child)
-			if err != nil {
-				return "", err
-			}
-			if len(subType) > 0 {
-				objectClass = subType
-			}
-		}
-	case "Not":
-		if len(f.Children) != 1 {
-			return "", errors.New("Not filter must have only one child")
-		}
-		subType, err := parseFilterObjectClass(f.Children[0])
-		if err != nil {
-			return "", err
-		}
-		if len(subType) > 0 {
-			objectClass = subType
-		}
 
+	return true, ldap.LDAPResultSuccess
+}
+
+func ServerFilterAttributes(attributes []string, entry *ldap.Entry) (LDAPResultCode, error) {
+	// attributes
+	if len(attributes) > 1 || (len(attributes) == 1 && len(attributes[0]) > 0) {
+		_, err := filterAttributes(entry, attributes)
+		if err != nil {
+			return ldap.LDAPResultOperationsError, err
+		}
 	}
-	return strings.ToLower(objectClass), nil
+
+	return ldap.LDAPResultSuccess, nil
 }

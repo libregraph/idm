@@ -10,7 +10,7 @@ import (
 	"github.com/go-ldap/ldap/v3"
 )
 
-func HandleSearchRequest(req *ber.Packet, controls *[]ldap.Control, messageID int64, boundDN string, server *Server, conn net.Conn) (resultErr error) {
+func HandleSearchRequest(req *ber.Packet, controls *[]ldap.Control, messageID int64, boundDN string, server *Server, conn net.Conn) (doneControls *[]ldap.Control, resultErr error) {
 	defer func() {
 		if r := recover(); r != nil {
 			resultErr = ldap.NewError(ldap.LDAPResultOperationsError, fmt.Errorf("Search function panic: %s", r))
@@ -19,12 +19,15 @@ func HandleSearchRequest(req *ber.Packet, controls *[]ldap.Control, messageID in
 
 	searchReq, err := parseSearchRequest(boundDN, req, controls)
 	if err != nil {
-		return ldap.NewError(ldap.LDAPResultOperationsError, err)
+		return nil, ldap.NewError(ldap.LDAPResultOperationsError, err)
 	}
 
-	filterPacket, err := ldap.CompileFilter(searchReq.Filter)
-	if err != nil {
-		return ldap.NewError(ldap.LDAPResultOperationsError, err)
+	var filterPacket *ber.Packet
+	if server.EnforceLDAP {
+		filterPacket, err = ldap.CompileFilter(searchReq.Filter)
+		if err != nil {
+			return nil, ldap.NewError(ldap.LDAPResultOperationsError, err)
+		}
 	}
 
 	fnNames := []string{}
@@ -34,7 +37,7 @@ func HandleSearchRequest(req *ber.Packet, controls *[]ldap.Control, messageID in
 	fn := routeFunc(searchReq.BaseDN, fnNames)
 	searchResp, err := server.SearchFns[fn].Search(boundDN, searchReq, conn)
 	if err != nil {
-		return ldap.NewError(uint16(searchResp.ResultCode), err)
+		return &searchResp.Controls, ldap.NewError(uint16(searchResp.ResultCode), err)
 	}
 
 	if server.EnforceLDAP {
@@ -52,35 +55,23 @@ func HandleSearchRequest(req *ber.Packet, controls *[]ldap.Control, messageID in
 			// filter
 			keep, resultCode := ServerApplyFilter(filterPacket, entry)
 			if resultCode != ldap.LDAPResultSuccess {
-				return ldap.NewError(uint16(resultCode), errors.New("ServerApplyFilter error"))
+				return &searchResp.Controls, ldap.NewError(uint16(resultCode), errors.New("ServerApplyFilter error"))
 			}
 			if !keep {
 				continue
 			}
 
-			// constrained search scope
-			switch searchReq.Scope {
-			case ldap.ScopeWholeSubtree: // The scope is constrained to the entry named by baseObject and to all its subordinates.
-			case ldap.ScopeBaseObject: // The scope is constrained to the entry named by baseObject.
-				if entry.DN != searchReq.BaseDN {
-					continue
-				}
-			case ldap.ScopeSingleLevel: // The scope is constrained to the immediate subordinates of the entry named by baseObject.
-				parts := strings.Split(entry.DN, ",")
-				if len(parts) < 2 && entry.DN != searchReq.BaseDN {
-					continue
-				}
-				if dn := strings.Join(parts[1:], ","); dn != searchReq.BaseDN {
-					continue
-				}
+			keep, resultCode = ServerFilterScope(searchReq.BaseDN, searchReq.Scope, entry)
+			if resultCode != ldap.LDAPResultSuccess {
+				return &searchResp.Controls, ldap.NewError(uint16(resultCode), errors.New("ServerApplyScope error"))
+			}
+			if !keep {
+				continue
 			}
 
-			// attributes
-			if len(searchReq.Attributes) > 1 || (len(searchReq.Attributes) == 1 && len(searchReq.Attributes[0]) > 0) {
-				entry, err = filterAttributes(entry, searchReq.Attributes)
-				if err != nil {
-					return ldap.NewError(ldap.LDAPResultOperationsError, err)
-				}
+			resultCode, err = ServerFilterAttributes(searchReq.Attributes, entry)
+			if err != nil {
+				return &searchResp.Controls, ldap.NewError(uint16(resultCode), err)
 			}
 
 			// size limit
@@ -93,63 +84,63 @@ func HandleSearchRequest(req *ber.Packet, controls *[]ldap.Control, messageID in
 		// respond
 		responsePacket := encodeSearchResponse(messageID, searchReq, entry)
 		if err = sendPacket(conn, responsePacket); err != nil {
-			return ldap.NewError(ldap.LDAPResultOperationsError, err)
+			return &searchResp.Controls, ldap.NewError(ldap.LDAPResultOperationsError, err)
 		}
 	}
-	return nil
+	return &searchResp.Controls, nil
 }
 
 /////////////////////////
-func parseSearchRequest(boundDN string, req *ber.Packet, controls *[]ldap.Control) (ldap.SearchRequest, error) {
+func parseSearchRequest(boundDN string, req *ber.Packet, controls *[]ldap.Control) (*ldap.SearchRequest, error) {
 	if len(req.Children) != 8 {
-		return ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultOperationsError, errors.New("Bad search request"))
+		return &ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultOperationsError, errors.New("Bad search request"))
 	}
 
 	// Parse the request
 	baseObject, ok := req.Children[0].Value.(string)
 	if !ok {
-		return ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("Bad search request"))
+		return &ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("Bad search request"))
 	}
 	s, ok := req.Children[1].Value.(int64)
 	if !ok {
-		return ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("Bad search request"))
+		return &ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("Bad search request"))
 	}
 	scope := int(s)
 	d, ok := req.Children[2].Value.(int64)
 	if !ok {
-		return ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("Bad search request"))
+		return &ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("Bad search request"))
 	}
 	derefAliases := int(d)
 	s, ok = req.Children[3].Value.(int64)
 	if !ok {
-		return ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("Bad search request"))
+		return &ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("Bad search request"))
 	}
 	sizeLimit := int(s)
 	t, ok := req.Children[4].Value.(int64)
 	if !ok {
-		return ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("Bad search request"))
+		return &ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("Bad search request"))
 	}
 	timeLimit := int(t)
 	typesOnly := false
 	if req.Children[5].Value != nil {
 		typesOnly, ok = req.Children[5].Value.(bool)
 		if !ok {
-			return ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("Bad search request"))
+			return &ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("Bad search request"))
 		}
 	}
 	filter, err := DecompileFilter(req.Children[6])
 	if err != nil {
-		return ldap.SearchRequest{}, err
+		return &ldap.SearchRequest{}, err
 	}
 	attributes := []string{}
 	for _, attr := range req.Children[7].Children {
 		a, ok := attr.Value.(string)
 		if !ok {
-			return ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("Bad search request"))
+			return &ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("Bad search request"))
 		}
 		attributes = append(attributes, a)
 	}
-	searchReq := ldap.SearchRequest{baseObject, scope,
+	searchReq := &ldap.SearchRequest{baseObject, scope,
 		derefAliases, sizeLimit, timeLimit,
 		typesOnly, filter, attributes, *controls}
 
@@ -174,7 +165,7 @@ func filterAttributes(entry *ldap.Entry, attributes []string) (*ldap.Entry, erro
 }
 
 /////////////////////////
-func encodeSearchResponse(messageID int64, req ldap.SearchRequest, res *ldap.Entry) *ber.Packet {
+func encodeSearchResponse(messageID int64, req *ldap.SearchRequest, res *ldap.Entry) *ber.Packet {
 	responsePacket := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Response")
 	responsePacket.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, messageID, "Message ID"))
 
@@ -206,7 +197,7 @@ func encodeSearchAttribute(name string, values []string) *ber.Packet {
 	return packet
 }
 
-func encodeSearchDone(messageID int64, ldapResultCode LDAPResultCode) *ber.Packet {
+func encodeSearchDone(messageID int64, ldapResultCode LDAPResultCode, doneControls *[]ldap.Control) *ber.Packet {
 	responsePacket := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Response")
 	responsePacket.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, messageID, "Message ID"))
 	donePacket := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ldap.ApplicationSearchResultDone, nil, "Search result done")
@@ -215,5 +206,12 @@ func encodeSearchDone(messageID int64, ldapResultCode LDAPResultCode) *ber.Packe
 	donePacket.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, "", "errorMessage: "))
 	responsePacket.AppendChild(donePacket)
 
+	contextPacket := ber.Encode(ber.ClassContext, ber.TypeConstructed, ber.TagEOC, nil, "Controls")
+	for _, control := range *doneControls {
+		contextPacket.AppendChild(control.Encode())
+	}
+	responsePacket.AppendChild(contextPacket)
+
+	// ber.PrintPacket(responsePacket)
 	return responsePacket
 }
