@@ -1,8 +1,11 @@
+// Copyright 2011 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package ldapserver
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"strings"
 
@@ -11,12 +14,6 @@ import (
 )
 
 func HandleSearchRequest(req *ber.Packet, controls *[]ldap.Control, messageID int64, boundDN string, server *Server, conn net.Conn) (doneControls *[]ldap.Control, resultErr error) {
-	defer func() {
-		if r := recover(); r != nil {
-			resultErr = ldap.NewError(ldap.LDAPResultOperationsError, fmt.Errorf("Search function panic: %s", r))
-		}
-	}()
-
 	searchReq, err := parseSearchRequest(boundDN, req, controls)
 	if err != nil {
 		return nil, ldap.NewError(ldap.LDAPResultOperationsError, err)
@@ -90,13 +87,12 @@ func HandleSearchRequest(req *ber.Packet, controls *[]ldap.Control, messageID in
 	return &searchResp.Controls, nil
 }
 
-/////////////////////////
 func parseSearchRequest(boundDN string, req *ber.Packet, controls *[]ldap.Control) (*ldap.SearchRequest, error) {
 	if len(req.Children) != 8 {
 		return &ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultOperationsError, errors.New("Bad search request"))
 	}
 
-	// Parse the request
+	// Parse the request.
 	baseObject, ok := req.Children[0].Value.(string)
 	if !ok {
 		return &ldap.SearchRequest{}, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("Bad search request"))
@@ -147,9 +143,8 @@ func parseSearchRequest(boundDN string, req *ber.Packet, controls *[]ldap.Contro
 	return searchReq, nil
 }
 
-/////////////////////////
 func filterAttributes(entry *ldap.Entry, attributes []string) (*ldap.Entry, error) {
-	// only return requested attributes
+	// Only return requested attributes.
 	newAttributes := []*ldap.EntryAttribute{}
 
 	for _, attr := range entry.Attributes {
@@ -164,7 +159,6 @@ func filterAttributes(entry *ldap.Entry, attributes []string) (*ldap.Entry, erro
 	return entry, nil
 }
 
-/////////////////////////
 func encodeSearchResponse(messageID int64, req *ldap.SearchRequest, res *ldap.Entry) *ber.Packet {
 	responsePacket := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Response")
 	responsePacket.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, messageID, "Message ID"))
@@ -172,7 +166,7 @@ func encodeSearchResponse(messageID int64, req *ldap.SearchRequest, res *ldap.En
 	searchEntry := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ldap.ApplicationSearchResultEntry, nil, "Search Result Entry")
 	searchEntry.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, res.DN, "Object Name"))
 
-	attrs := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Attributes:")
+	attrs := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Attributes: ")
 	for _, attribute := range res.Attributes {
 		attrs.AppendChild(encodeSearchAttribute(attribute.Name, attribute.Values))
 	}
@@ -187,7 +181,7 @@ func encodeSearchAttribute(name string, values []string) *ber.Packet {
 	packet := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Attribute")
 	packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, name, "Attribute Name"))
 
-	valuesPacket := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSet, nil, "Attribute Values")
+	valuesPacket := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSet, nil, "Attribute Values: ")
 	for _, value := range values {
 		valuesPacket.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, value, "Attribute Value"))
 	}
@@ -206,7 +200,7 @@ func encodeSearchDone(messageID int64, ldapResultCode LDAPResultCode, doneContro
 	donePacket.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, "", "errorMessage: "))
 	responsePacket.AppendChild(donePacket)
 
-	contextPacket := ber.Encode(ber.ClassContext, ber.TypeConstructed, ber.TagEOC, nil, "Controls")
+	contextPacket := ber.Encode(ber.ClassContext, ber.TypeConstructed, ber.TagEOC, nil, "Controls: ")
 	for _, control := range *doneControls {
 		contextPacket.AppendChild(control.Encode())
 	}
