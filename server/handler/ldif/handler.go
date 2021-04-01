@@ -16,12 +16,12 @@ import (
 
 	"github.com/go-ldap/ldap/v3"
 	"github.com/go-ldap/ldif"
-	nmcldap "github.com/nmcclain/ldap"
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/sirupsen/logrus"
 	"github.com/spacewander/go-suffix-tree"
 	"stash.kopano.io/kgol/rndm"
 
+	"stash.kopano.io/kgol/kidm/internal/ldapserver"
 	"stash.kopano.io/kgol/kidm/server/handler"
 )
 
@@ -79,7 +79,7 @@ func NewLDIFHandler(ctx context.Context, logger logrus.FieldLogger, fn string, b
 	}, nil
 }
 
-func (h *ldifHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (nmcldap.LDAPResultCode, error) {
+func (h *ldifHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldapserver.LDAPResultCode, error) {
 	bindDN = strings.ToLower(bindDN)
 
 	logger := h.logger.WithFields(logrus.Fields{
@@ -110,7 +110,7 @@ func (h *ldifHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (nmcldap.
 	return ldap.LDAPResultSuccess, nil
 }
 
-func (h *ldifHandler) Search(bindDN string, searchReq *ldap.SearchRequest, conn net.Conn) (nmcldap.ServerSearchResult, error) {
+func (h *ldifHandler) Search(bindDN string, searchReq *ldap.SearchRequest, conn net.Conn) (ldapserver.ServerSearchResult, error) {
 	bindDN = strings.ToLower(bindDN)
 	searchBaseDN := strings.ToLower(searchReq.BaseDN)
 	logger := h.logger.WithFields(logrus.Fields{
@@ -127,7 +127,7 @@ func (h *ldifHandler) Search(bindDN string, searchReq *ldap.SearchRequest, conn 
 	if bindDN == "" {
 		err := fmt.Errorf("anonymous BindDN not allowed")
 		logger.WithError(err).Debugln("ldap search error")
-		return nmcldap.ServerSearchResult{
+		return ldapserver.ServerSearchResult{
 			ResultCode: ldap.LDAPResultInsufficientAccessRights,
 		}, err
 	}
@@ -135,14 +135,14 @@ func (h *ldifHandler) Search(bindDN string, searchReq *ldap.SearchRequest, conn 
 	if !strings.HasSuffix(bindDN, h.baseDN) {
 		err := fmt.Errorf("the BindDN is not in our BaseDN: %s", h.baseDN)
 		logger.WithError(err).Debugln("ldap search error")
-		return nmcldap.ServerSearchResult{
+		return ldapserver.ServerSearchResult{
 			ResultCode: ldap.LDAPResultInsufficientAccessRights,
 		}, err
 	}
 
 	if !strings.HasSuffix(searchBaseDN, h.baseDN) {
 		err := fmt.Errorf("search BaseDN is not in our BaseDN %s", h.baseDN)
-		return nmcldap.ServerSearchResult{
+		return ldapserver.ServerSearchResult{
 			ResultCode: ldap.LDAPResultInsufficientAccessRights,
 		}, err
 	}
@@ -159,7 +159,7 @@ func (h *ldifHandler) Search(bindDN string, searchReq *ldap.SearchRequest, conn 
 		}
 	}
 
-	pumpCh, resultCode := func() (<-chan *ldifEntry, nmcldap.LDAPResultCode) {
+	pumpCh, resultCode := func() (<-chan *ldifEntry, ldapserver.LDAPResultCode) {
 		var pumpCh chan *ldifEntry
 		var start = true
 		if pagingControl != nil {
@@ -197,14 +197,14 @@ func (h *ldifHandler) Search(bindDN string, searchReq *ldap.SearchRequest, conn 
 	}()
 	if resultCode != ldap.LDAPResultSuccess {
 		err := fmt.Errorf("search unable to perform: %d", resultCode)
-		return nmcldap.ServerSearchResult{
+		return ldapserver.ServerSearchResult{
 			ResultCode: resultCode,
 		}, err
 	}
 
-	filterPacket, err := nmcldap.CompileFilter(searchReq.Filter)
+	filterPacket, err := ldapserver.CompileFilter(searchReq.Filter)
 	if err != nil {
-		return nmcldap.ServerSearchResult{
+		return ldapserver.ServerSearchResult{
 			ResultCode: ldap.LDAPResultOperationsError,
 		}, err
 	}
@@ -227,9 +227,9 @@ results:
 				entry = entryRecord.Entry
 
 				// Apply filter.
-				keep, resultCode = nmcldap.ServerApplyFilter(filterPacket, entry)
+				keep, resultCode = ldapserver.ServerApplyFilter(filterPacket, entry)
 				if resultCode != ldap.LDAPResultSuccess {
-					return nmcldap.ServerSearchResult{
+					return ldapserver.ServerSearchResult{
 						ResultCode: resultCode,
 					}, errors.New("search filter apply error")
 				}
@@ -238,9 +238,9 @@ results:
 				}
 
 				// Filter scope.
-				keep, resultCode = nmcldap.ServerFilterScope(searchReq.BaseDN, searchReq.Scope, entry)
+				keep, resultCode = ldapserver.ServerFilterScope(searchReq.BaseDN, searchReq.Scope, entry)
 				if resultCode != ldap.LDAPResultSuccess {
-					return nmcldap.ServerSearchResult{
+					return ldapserver.ServerSearchResult{
 						ResultCode: resultCode,
 					}, errors.New("search scope apply error")
 				}
@@ -256,9 +256,9 @@ results:
 				copy(e.Attributes, entry.Attributes)
 
 				// Filter attributes from entry.
-				resultCode, err = nmcldap.ServerFilterAttributes(searchReq.Attributes, e)
+				resultCode, err = ldapserver.ServerFilterAttributes(searchReq.Attributes, e)
 				if err != nil {
-					return nmcldap.ServerSearchResult{
+					return ldapserver.ServerSearchResult{
 						ResultCode: resultCode,
 					}, err
 				}
@@ -288,7 +288,7 @@ results:
 		})
 	}
 
-	return nmcldap.ServerSearchResult{
+	return ldapserver.ServerSearchResult{
 		Entries:    entries,
 		Referrals:  []string{},
 		Controls:   doneControls,

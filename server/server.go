@@ -16,9 +16,9 @@ import (
 	"syscall"
 	"time"
 
-	nmcldap "github.com/nmcclain/ldap"
 	"github.com/sirupsen/logrus"
 
+	"stash.kopano.io/kgol/kidm/internal/ldapserver"
 	"stash.kopano.io/kgol/kidm/server/handler"
 	"stash.kopano.io/kgol/kidm/server/handler/ldif"
 )
@@ -29,7 +29,7 @@ type Server struct {
 
 	logger logrus.FieldLogger
 
-	LDAPServer  *nmcldap.Server
+	LDAPServer  *ldapserver.Server
 	LDAPHandler handler.Handler
 }
 
@@ -95,7 +95,7 @@ func (s *Server) Serve(ctx context.Context) error {
 	log.SetFlags(0)
 	log.SetOutput(loggerWriter)
 
-	s.LDAPServer = nmcldap.NewServer()
+	s.LDAPServer = ldapserver.NewServer()
 	s.LDAPServer.EnforceLDAP = false
 
 	s.LDAPServer.BindFunc("", s.LDAPHandler)

@@ -12,10 +12,10 @@ import (
 
 	"github.com/go-ldap/ldap/v3"
 	"github.com/go-ldap/ldif"
-	nmcldap "github.com/nmcclain/ldap"
 	"github.com/sirupsen/logrus"
 	"github.com/spacewander/go-suffix-tree"
 
+	"stash.kopano.io/kgol/kidm/internal/ldapserver"
 	"stash.kopano.io/kgol/kidm/server/handler"
 )
 
@@ -71,7 +71,7 @@ func (h *ldifMiddleware) WithHandler(next handler.Handler) handler.Handler {
 	return h
 }
 
-func (h *ldifMiddleware) Bind(bindDN, bindSimplePw string, conn net.Conn) (resultCode nmcldap.LDAPResultCode, err error) {
+func (h *ldifMiddleware) Bind(bindDN, bindSimplePw string, conn net.Conn) (resultCode ldapserver.LDAPResultCode, err error) {
 	entryRecord, found := h.t.Get([]byte(bindDN))
 	if found {
 		logger := h.logger.WithFields(logrus.Fields{
@@ -94,7 +94,7 @@ func (h *ldifMiddleware) Bind(bindDN, bindSimplePw string, conn net.Conn) (resul
 	return h.next.Bind(bindDN, bindSimplePw, conn)
 }
 
-func (h *ldifMiddleware) Search(bindDN string, searchReq *ldap.SearchRequest, conn net.Conn) (result nmcldap.ServerSearchResult, err error) {
+func (h *ldifMiddleware) Search(bindDN string, searchReq *ldap.SearchRequest, conn net.Conn) (result ldapserver.ServerSearchResult, err error) {
 	return h.next.Search(bindDN, searchReq, conn)
 }
 

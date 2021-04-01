@@ -11,11 +11,12 @@ import (
 	"strings"
 
 	"github.com/go-asn1-ber/asn1-ber"
-	nmcldap "github.com/nmcclain/ldap"
+
+	"stash.kopano.io/kgol/kidm/internal/ldapserver"
 )
 
 func parseFilterToIndexFilter(filter string) ([][]string, error) {
-	f, err := nmcldap.CompileFilter(filter)
+	f, err := ldapserver.CompileFilter(filter)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +41,7 @@ func parseFilterMatchLeavesForIndex(f *ber.Packet, parent [][]string, level stri
 	}
 
 	switch f.Tag {
-	case nmcldap.FilterEqualityMatch:
+	case ldapserver.FilterEqualityMatch:
 		if len(f.Children) != 2 {
 			return nil, errors.New("unsupported number of children in equality match filter")
 		}
@@ -52,7 +53,7 @@ func parseFilterMatchLeavesForIndex(f *ber.Packet, parent [][]string, level stri
 			parent = append(parent, []string{level, attribute, "eq", value})
 		}
 
-	case nmcldap.FilterAnd:
+	case ldapserver.FilterAnd:
 		for idx, child := range f.Children {
 			parent, err = parseFilterMatchLeavesForIndex(child, parent, fmt.Sprintf("%s.&%d", level, idx))
 			if err != nil {
@@ -60,7 +61,7 @@ func parseFilterMatchLeavesForIndex(f *ber.Packet, parent [][]string, level stri
 			}
 		}
 
-	case nmcldap.FilterOr:
+	case ldapserver.FilterOr:
 		for idx, child := range f.Children {
 			parent, err = parseFilterMatchLeavesForIndex(child, parent, fmt.Sprintf("%s.|%d", level, idx))
 			if err != nil {
@@ -68,7 +69,7 @@ func parseFilterMatchLeavesForIndex(f *ber.Packet, parent [][]string, level stri
 			}
 		}
 
-	case nmcldap.FilterNot, nmcldap.FilterPresent:
+	case ldapserver.FilterNot, ldapserver.FilterPresent:
 		// Ignored for now.
 
 	default:

@@ -6,14 +6,14 @@
 package handler
 
 import (
-	nmcldap "github.com/nmcclain/ldap"
+	"stash.kopano.io/kgol/kidm/internal/ldapserver"
 )
 
 // Interface for handlers.
 type Handler interface {
-	nmcldap.Binder
-	nmcldap.Searcher
-	nmcldap.Closer
+	ldapserver.Binder
+	ldapserver.Searcher
+	ldapserver.Closer
 }
 
 // Interface for middlewares.
