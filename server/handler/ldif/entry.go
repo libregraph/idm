@@ -13,13 +13,13 @@ import (
 	"strings"
 
 	"github.com/amoghe/go-crypt"
-	nmcldap "github.com/nmcclain/ldap"
+	"github.com/go-ldap/ldap/v3"
 )
 
 type ldifEntry struct {
-	*nmcldap.Entry
+	*ldap.Entry
 
-	UserPassword *nmcldap.EntryAttribute
+	UserPassword *ldap.EntryAttribute
 }
 
 func (entry *ldifEntry) validatePassword(bindSimplePw string) error {

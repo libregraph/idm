@@ -6,19 +6,27 @@
 package ldif
 
 import (
+	"context"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
+	"github.com/go-ldap/ldap/v3"
 	"github.com/go-ldap/ldif"
 	nmcldap "github.com/nmcclain/ldap"
+	cmap "github.com/orcaman/concurrent-map"
 	"github.com/sirupsen/logrus"
 	"github.com/spacewander/go-suffix-tree"
+	"stash.kopano.io/kgol/rndm"
 
 	"stash.kopano.io/kgol/kidm/server/handler"
 )
 
 type ldifHandler struct {
+	ctx    context.Context
 	logger logrus.FieldLogger
 	baseDN string
 
@@ -26,11 +34,13 @@ type ldifHandler struct {
 	t *suffix.Tree
 
 	index Index
+
+	activeSearchPagings cmap.ConcurrentMap
 }
 
 var _ handler.Handler = (*ldifHandler)(nil) // Verify that *ldifHandler implements handler.Handler.
 
-func NewLDIFHandler(logger logrus.FieldLogger, fn string, baseDN string) (handler.Handler, error) {
+func NewLDIFHandler(ctx context.Context, logger logrus.FieldLogger, fn string, baseDN string) (handler.Handler, error) {
 	if fn == "" {
 		return nil, fmt.Errorf("file name is empty")
 	}
@@ -56,6 +66,7 @@ func NewLDIFHandler(logger logrus.FieldLogger, fn string, baseDN string) (handle
 	}).Debugln("loaded LDIF from file")
 
 	return &ldifHandler{
+		ctx:    ctx,
 		logger: logger,
 		baseDN: strings.ToLower(baseDN),
 
@@ -63,10 +74,12 @@ func NewLDIFHandler(logger logrus.FieldLogger, fn string, baseDN string) (handle
 		t: t,
 
 		index: index,
+
+		activeSearchPagings: cmap.New(),
 	}, nil
 }
 
-func (h *ldifHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (resultCode nmcldap.LDAPResultCode, err error) {
+func (h *ldifHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (nmcldap.LDAPResultCode, error) {
 	bindDN = strings.ToLower(bindDN)
 
 	logger := h.logger.WithFields(logrus.Fields{
@@ -79,25 +92,25 @@ func (h *ldifHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (resultCo
 	if !strings.HasSuffix(bindDN, h.baseDN) {
 		err := fmt.Errorf("the BindDN is not in our BaseDN %s", h.baseDN)
 		logger.WithError(err).Debugf("ldap bind error")
-		return nmcldap.LDAPResultInvalidCredentials, nil
+		return ldap.LDAPResultInvalidCredentials, nil
 	}
 
 	entryRecord, found := h.t.Get([]byte(bindDN))
 	if !found {
 		err := fmt.Errorf("user not found")
 		logger.WithError(err).Debugf("ldap bind error")
-		return nmcldap.LDAPResultInvalidCredentials, nil
+		return ldap.LDAPResultInvalidCredentials, nil
 	}
 	entry := entryRecord.(*ldifEntry)
 
 	if err := entry.validatePassword(bindSimplePw); err != nil {
 		logger.WithError(err).Debugf("bind error")
-		return nmcldap.LDAPResultInvalidCredentials, nil
+		return ldap.LDAPResultInvalidCredentials, nil
 	}
-	return nmcldap.LDAPResultSuccess, nil
+	return ldap.LDAPResultSuccess, nil
 }
 
-func (h *ldifHandler) Search(bindDN string, searchReq nmcldap.SearchRequest, conn net.Conn) (result nmcldap.ServerSearchResult, err error) {
+func (h *ldifHandler) Search(bindDN string, searchReq *ldap.SearchRequest, conn net.Conn) (nmcldap.ServerSearchResult, error) {
 	bindDN = strings.ToLower(bindDN)
 	searchBaseDN := strings.ToLower(searchReq.BaseDN)
 	logger := h.logger.WithFields(logrus.Fields{
@@ -115,7 +128,7 @@ func (h *ldifHandler) Search(bindDN string, searchReq nmcldap.SearchRequest, con
 		err := fmt.Errorf("anonymous BindDN not allowed")
 		logger.WithError(err).Debugln("ldap search error")
 		return nmcldap.ServerSearchResult{
-			ResultCode: nmcldap.LDAPResultInsufficientAccessRights,
+			ResultCode: ldap.LDAPResultInsufficientAccessRights,
 		}, err
 	}
 
@@ -123,53 +136,208 @@ func (h *ldifHandler) Search(bindDN string, searchReq nmcldap.SearchRequest, con
 		err := fmt.Errorf("the BindDN is not in our BaseDN: %s", h.baseDN)
 		logger.WithError(err).Debugln("ldap search error")
 		return nmcldap.ServerSearchResult{
-			ResultCode: nmcldap.LDAPResultInsufficientAccessRights,
+			ResultCode: ldap.LDAPResultInsufficientAccessRights,
 		}, err
 	}
 
 	if !strings.HasSuffix(searchBaseDN, h.baseDN) {
 		err := fmt.Errorf("search BaseDN is not in our BaseDN %s", h.baseDN)
 		return nmcldap.ServerSearchResult{
-			ResultCode: nmcldap.LDAPResultInsufficientAccessRights,
+			ResultCode: ldap.LDAPResultInsufficientAccessRights,
 		}, err
 	}
 
-	controls := []nmcldap.Control{}
-	var pagingControl *nmcldap.ControlPaging
-	if paging := nmcldap.FindControl(searchReq.Controls, nmcldap.ControlTypePaging); paging != nil {
-		pagingControl = paging.(*nmcldap.ControlPaging)
-		logger.WithField("paging_size", pagingControl.PagingSize).Warnln("ldap search with paging control not supported")
-		pagingControl = nil
+	doneControls := []ldap.Control{}
+	var pagingControl *ldap.ControlPaging
+	var pagingCookie []byte
+	if paging := ldap.FindControl(searchReq.Controls, ldap.ControlTypePaging); paging != nil {
+		pagingControl = paging.(*ldap.ControlPaging)
+		if searchReq.SizeLimit > 0 && pagingControl.PagingSize >= uint32(searchReq.SizeLimit) {
+			pagingControl = nil
+		} else {
+			pagingCookie = pagingControl.Cookie
+		}
+	}
+
+	pumpCh, resultCode := func() (<-chan *ldifEntry, nmcldap.LDAPResultCode) {
+		var pumpCh chan *ldifEntry
+		var start = true
+		if pagingControl != nil {
+			if len(pagingCookie) == 0 {
+				pagingCookie = []byte(base64.RawStdEncoding.EncodeToString(rndm.GenerateRandomBytes(8)))
+				pagingControl.Cookie = pagingCookie
+				pumpCh = make(chan *ldifEntry)
+				h.activeSearchPagings.Set(string(pagingControl.Cookie), pumpCh)
+				logger.WithField("paging_cookie", string(pagingControl.Cookie)).Debugln("search paging pump start")
+			} else {
+				pumpChRecord, ok := h.activeSearchPagings.Get(string(pagingControl.Cookie))
+				if !ok {
+					return nil, ldap.LDAPResultUnwillingToPerform
+				}
+				if pagingControl.PagingSize > 0 {
+					logger.WithField("paging_cookie", string(pagingControl.Cookie)).Debugln("search paging pump continue")
+					pumpCh = pumpChRecord.(chan *ldifEntry)
+					start = false
+				} else {
+					// No paging size with cookie, means abandon.
+					start = false
+					logger.WithField("paging_cookie", string(pagingControl.Cookie)).Debugln("search paging pump abandon")
+					// TODO(longsleep): Cancel paging pump context.
+					h.activeSearchPagings.Remove(string(pagingControl.Cookie))
+				}
+			}
+		} else {
+			pumpCh = make(chan *ldifEntry)
+		}
+		if start {
+			go h.searchEntriesPump(h.ctx, pumpCh, searchReq, pagingControl, indexFilter)
+		}
+
+		return pumpCh, ldap.LDAPResultSuccess
+	}()
+	if resultCode != ldap.LDAPResultSuccess {
+		err := fmt.Errorf("search unable to perform: %d", resultCode)
+		return nmcldap.ServerSearchResult{
+			ResultCode: resultCode,
+		}, err
+	}
+
+	filterPacket, err := nmcldap.CompileFilter(searchReq.Filter)
+	if err != nil {
+		return nmcldap.ServerSearchResult{
+			ResultCode: ldap.LDAPResultOperationsError,
+		}, err
+	}
+
+	var entryRecord *ldifEntry
+	var entries []*ldap.Entry
+	var entry *ldap.Entry
+	var count uint32
+	var keep bool
+results:
+	for {
+		select {
+		case entryRecord = <-pumpCh:
+			if entryRecord == nil {
+				// All done, set cookie to empty.
+				pagingCookie = []byte{}
+				break results
+
+			} else {
+				entry = entryRecord.Entry
+
+				// Apply filter.
+				keep, resultCode = nmcldap.ServerApplyFilter(filterPacket, entry)
+				if resultCode != ldap.LDAPResultSuccess {
+					return nmcldap.ServerSearchResult{
+						ResultCode: resultCode,
+					}, errors.New("search filter apply error")
+				}
+				if !keep {
+					continue
+				}
+
+				// Filter scope.
+				keep, resultCode = nmcldap.ServerFilterScope(searchReq.BaseDN, searchReq.Scope, entry)
+				if resultCode != ldap.LDAPResultSuccess {
+					return nmcldap.ServerSearchResult{
+						ResultCode: resultCode,
+					}, errors.New("search scope apply error")
+				}
+				if !keep {
+					continue
+				}
+
+				// Make a copy, before filtering attributes.
+				e := &ldap.Entry{
+					DN:         entry.DN,
+					Attributes: make([]*ldap.EntryAttribute, len(entry.Attributes)),
+				}
+				copy(e.Attributes, entry.Attributes)
+
+				// Filter attributes from entry.
+				resultCode, err = nmcldap.ServerFilterAttributes(searchReq.Attributes, e)
+				if err != nil {
+					return nmcldap.ServerSearchResult{
+						ResultCode: resultCode,
+					}, err
+				}
+
+				// Append entry as result.
+				entries = append(entries, e)
+
+				// Count and more.
+				count++
+				if pagingControl != nil {
+					if count >= pagingControl.PagingSize {
+						break results
+					}
+				}
+				if searchReq.SizeLimit > 0 && count >= uint32(searchReq.SizeLimit) {
+					// TODO(longsleep): handle total sizelimit for paging.
+					break results
+				}
+			}
+		}
+	}
+
+	if pagingControl != nil {
+		doneControls = append(doneControls, &ldap.ControlPaging{
+			PagingSize: 0,
+			Cookie:     pagingCookie,
+		})
+	}
+
+	return nmcldap.ServerSearchResult{
+		Entries:    entries,
+		Referrals:  []string{},
+		Controls:   doneControls,
+		ResultCode: ldap.LDAPResultSuccess,
+	}, nil
+}
+
+func (h *ldifHandler) searchEntriesPump(ctx context.Context, pumpCh chan<- *ldifEntry, searchReq *ldap.SearchRequest, pagingControl *ldap.ControlPaging, indexFilter [][]string) {
+	defer func() {
+		if pagingControl != nil {
+			h.activeSearchPagings.Remove(string(pagingControl.Cookie))
+			close(pumpCh)
+			h.logger.WithField("paging_cookie", string(pagingControl.Cookie)).Debugln("search paging pump ended")
+		} else {
+			close(pumpCh)
+		}
+	}()
+
+	pump := func(entryRecord *ldifEntry) bool {
+		select {
+		case pumpCh <- entryRecord:
+		case <-ctx.Done():
+			h.logger.WithField("paging_cookie", string(pagingControl.Cookie)).Warnln("search paging pump context done")
+			return false
+		case <-time.After(1 * time.Minute):
+			h.logger.WithField("paging_cookie", string(pagingControl.Cookie)).Warnln("search paging pump timeout")
+			return false
+		}
+		return true
 	}
 
 	load := true
-	var entries []*nmcldap.Entry
 	if len(indexFilter) > 0 {
 		// Get entries with help of index.
 		load = false
-		var results [][]*ldifEntry
+		var results []*[]*ldifEntry
 		for _, f := range indexFilter {
 			indexed, found := h.index.Load(f[0], f[1], f[2])
 			if !found {
 				load = true
 				break
 			}
-			results = append(results, indexed)
+			results = append(results, &indexed)
 		}
 		if !load {
-		results:
 			for _, indexed := range results {
-				for _, entryRecord := range indexed {
-					// NOTE(longsleep): The nmcldap search handler mutates the entries it processes, so we make a copy.
-					entry := entryRecord.Entry
-					e := &nmcldap.Entry{
-						DN:         entry.DN,
-						Attributes: make([]*nmcldap.EntryAttribute, len(entry.Attributes)),
-					}
-					copy(e.Attributes, entry.Attributes)
-					entries = append(entries, e)
-					if pagingControl != nil && len(entries) >= int(pagingControl.PagingSize) {
-						break results
+				for _, entryRecord := range *indexed {
+					if ok := pump(entryRecord); !ok {
+						return
 					}
 				}
 			}
@@ -177,30 +345,15 @@ func (h *ldifHandler) Search(bindDN string, searchReq nmcldap.SearchRequest, con
 	}
 	if load {
 		// Walk through all entries (this is slow).
-		logger.WithField("filter", searchReq.Filter).Warnln("ldap search filter does not match any index, using slow walk")
-		entries = nil
+		h.logger.WithField("filter", searchReq.Filter).Warnln("ldap search filter does not match any index, using slow walk")
+		searchBaseDN := strings.ToLower(searchReq.BaseDN)
 		h.t.WalkSuffix([]byte(searchBaseDN), func(key []byte, entryRecord interface{}) bool {
-			// NOTE(longsleep): The nmcldap search handler mutates the entries it processes, so we make a copy.
-			entry := entryRecord.(*ldifEntry).Entry
-			e := &nmcldap.Entry{
-				DN:         entry.DN,
-				Attributes: make([]*nmcldap.EntryAttribute, len(entry.Attributes)),
-			}
-			copy(e.Attributes, entry.Attributes)
-			entries = append(entries, e)
-			if pagingControl != nil && len(entries) >= int(pagingControl.PagingSize) {
+			if ok := pump(entryRecord.(*ldifEntry)); !ok {
 				return true
 			}
 			return false
 		})
 	}
-
-	return nmcldap.ServerSearchResult{
-		Entries:    entries,
-		Referrals:  []string{},
-		Controls:   controls,
-		ResultCode: nmcldap.LDAPResultSuccess,
-	}, nil
 }
 
 func (h *ldifHandler) Close(bindDN string, conn net.Conn) error {

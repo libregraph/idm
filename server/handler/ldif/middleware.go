@@ -10,6 +10,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/go-ldap/ldap/v3"
 	"github.com/go-ldap/ldif"
 	nmcldap "github.com/nmcclain/ldap"
 	"github.com/sirupsen/logrus"
@@ -81,19 +82,19 @@ func (h *ldifMiddleware) Bind(bindDN, bindSimplePw string, conn net.Conn) (resul
 		if !strings.HasSuffix(bindDN, h.baseDN) {
 			err := fmt.Errorf("the BindDN is not in our BaseDN %s", h.baseDN)
 			logger.WithError(err).Infoln("ldap bind error")
-			return nmcldap.LDAPResultInvalidCredentials, nil
+			return ldap.LDAPResultInvalidCredentials, nil
 		}
 
 		if err := entryRecord.(*ldifEntry).validatePassword(bindSimplePw); err != nil {
 			logger.WithError(err).Infoln("bind error")
-			return nmcldap.LDAPResultInvalidCredentials, nil
+			return ldap.LDAPResultInvalidCredentials, nil
 		}
 	}
 
 	return h.next.Bind(bindDN, bindSimplePw, conn)
 }
 
-func (h *ldifMiddleware) Search(bindDN string, searchReq nmcldap.SearchRequest, conn net.Conn) (result nmcldap.ServerSearchResult, err error) {
+func (h *ldifMiddleware) Search(bindDN string, searchReq *ldap.SearchRequest, conn net.Conn) (result nmcldap.ServerSearchResult, err error) {
 	return h.next.Search(bindDN, searchReq, conn)
 }
 

@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"strings"
 
-	ber "github.com/nmcclain/asn1-ber"
+	"github.com/go-asn1-ber/asn1-ber"
 	nmcldap "github.com/nmcclain/ldap"
 )
 

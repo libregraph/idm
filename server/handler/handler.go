@@ -6,14 +6,14 @@
 package handler
 
 import (
-	"github.com/nmcclain/ldap"
+	nmcldap "github.com/nmcclain/ldap"
 )
 
 // Interface for handlers.
 type Handler interface {
-	ldap.Binder
-	ldap.Searcher
-	ldap.Closer
+	nmcldap.Binder
+	nmcldap.Searcher
+	nmcldap.Closer
 }
 
 // Interface for middlewares.

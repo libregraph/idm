@@ -10,9 +10,8 @@ import (
 	"os"
 	"strings"
 
-	goldap "github.com/go-ldap/ldap/v3"
+	"github.com/go-ldap/ldap/v3"
 	"github.com/go-ldap/ldif"
-	nmcldap "github.com/nmcclain/ldap"
 	"github.com/spacewander/go-suffix-tree"
 )
 
@@ -38,22 +37,22 @@ func treeFromLDIF(l *ldif.LDIF, index Index) (*suffix.Tree, error) {
 	t := suffix.NewTree()
 
 	// NOTE(longsleep): Meh nmcldap vs goldap - for now create the type which we need to return for search.
-	var entry *goldap.Entry
+	var entry *ldap.Entry
 	for _, entry = range l.AllEntries() {
 		e := &ldifEntry{
-			Entry: &nmcldap.Entry{
+			Entry: &ldap.Entry{
 				DN: strings.ToLower(entry.DN),
 			},
 		}
 		for _, a := range entry.Attributes {
 			switch strings.ToLower(a.Name) {
 			case "userpassword":
-				e.UserPassword = &nmcldap.EntryAttribute{
+				e.UserPassword = &ldap.EntryAttribute{
 					Name:   a.Name,
 					Values: a.Values,
 				}
 			default:
-				e.Entry.Attributes = append(e.Entry.Attributes, &nmcldap.EntryAttribute{
+				e.Entry.Attributes = append(e.Entry.Attributes, &ldap.EntryAttribute{
 					Name:   a.Name,
 					Values: a.Values,
 				})

@@ -16,7 +16,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/nmcclain/ldap"
+	nmcldap "github.com/nmcclain/ldap"
 	"github.com/sirupsen/logrus"
 
 	"stash.kopano.io/kgol/kidm/server/handler"
@@ -29,7 +29,7 @@ type Server struct {
 
 	logger logrus.FieldLogger
 
-	LDAPServer  *ldap.Server
+	LDAPServer  *nmcldap.Server
 	LDAPHandler handler.Handler
 }
 
@@ -69,7 +69,7 @@ func (s *Server) Serve(ctx context.Context) error {
 		logger.WithFields(logrus.Fields{}).Infoln("ready")
 	}()
 
-	s.LDAPHandler, err = ldif.NewLDIFHandler(logger, s.config.LDIFSource, s.config.LDAPBaseDN)
+	s.LDAPHandler, err = ldif.NewLDIFHandler(serveCtx, logger, s.config.LDIFSource, s.config.LDAPBaseDN)
 	if err != nil {
 		return fmt.Errorf("failed to create LDIF source handler: %w", err)
 	}
@@ -95,8 +95,8 @@ func (s *Server) Serve(ctx context.Context) error {
 	log.SetFlags(0)
 	log.SetOutput(loggerWriter)
 
-	s.LDAPServer = ldap.NewServer()
-	s.LDAPServer.EnforceLDAP = true
+	s.LDAPServer = nmcldap.NewServer()
+	s.LDAPServer.EnforceLDAP = false
 
 	s.LDAPServer.BindFunc("", s.LDAPHandler)
 	s.LDAPServer.SearchFunc("", s.LDAPHandler)
