@@ -6,9 +6,14 @@
 package ldif
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/go-ldap/ldap/v3"
 	"github.com/go-ldap/ldif"
@@ -17,13 +22,75 @@ import (
 
 // parseLDIFFile opens the named file for reading and parses it as LDIF.
 func parseLDIFFile(fn string) (*ldif.LDIF, error) {
-	f, err := os.Open(fn)
+	m := map[string]interface{}{
+		"Company":    "Default",
+		"BaseDN":     "dc=kopano",
+		"MailDomain": "kopano.local",
+	}
+	autoIncrement := 1000
+	tpl, err := template.New("tpl").Funcs(template.FuncMap{
+		"WithCompany": func(value string) string {
+			m["Company"] = value
+			return ""
+		},
+		"WithBaseDN": func(value string) string {
+			m["BaseDN"] = value
+			return ""
+		},
+		"WithMailDomain": func(value string) string {
+			m["MailDomain"] = value
+			return ""
+		},
+		"AutoIncrement": func() int {
+			autoIncrement++
+			return autoIncrement
+		},
+		"formatAsBase64": func(s string) string {
+			return base64.StdEncoding.EncodeToString([]byte(s))
+		},
+		"formatAsFileBase64": func(fn string) (string, error) {
+			fn, err := filepath.Abs(fn)
+			if err != nil {
+				return "", err
+			}
+
+			f, err := os.Open(fn)
+			if err != nil {
+				return "", fmt.Errorf("LDIF template fromFile open failed with error: %w", err)
+			}
+			defer f.Close()
+
+			reader := io.LimitReader(f, 1024*1024+1)
+
+			var buf bytes.Buffer
+			encoder := base64.NewEncoder(base64.StdEncoding, &buf)
+			n, err := io.Copy(encoder, reader)
+			if err != nil {
+				return "", fmt.Errorf("LDIF template fromFile error: %w", err)
+			}
+			if n > 1024*1024 {
+				return "", fmt.Errorf("LDIF template fromFile size limit exceeded: %s", fn)
+			}
+
+			return buf.String(), nil
+		},
+	}).ParseFiles(fn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse LDIF template: %w", err)
+	}
+
+	var buf bytes.Buffer
+	err = tpl.ExecuteTemplate(&buf, filepath.Base(fn), m)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process LDIF template: %w", err)
+	}
+
+	if false {
+		fmt.Println(buf.String())
 	}
 
 	l := &ldif.LDIF{}
-	err = ldif.Unmarshal(f, l)
+	err = ldif.Unmarshal(&buf, l)
 	if err != nil {
 		return nil, err
 	}

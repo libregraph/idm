@@ -1,0 +1,87 @@
+{{WithCompany "Default"}}
+{{WithBaseDN "dc=kopano,dc=local"}}
+{{WithMailDomain "kopano.local"}}
+
+dn: {{.BaseDN}}
+objectClass: top
+
+dn: ou={{.Company}},{{.BaseDN}}
+objectClass: organizationalUnit
+objectClass: top
+objectClass: kopano-company
+ou: Default
+
+dn: ou=addresslists,ou={{.Company}},{{.BaseDN}}
+objectClass: organizationalUnit
+objectClass: top
+ou: addresslists
+
+dn: ou=people,ou={{.Company}},{{.BaseDN}}
+objectClass: organizationalUnit
+objectClass: top
+ou: people
+
+dn: ou=groups,ou={{.Company}},{{.BaseDN}}
+objectClass: organizationalUnit
+objectClass: top
+ou: groups
+
+dn: ou=contacts,ou={{.Company}},{{.BaseDN}}
+objectClass: organizationalUnit
+objectClass: top
+ou: contacts
+
+{{with .}}
+{{$uid := "user1" -}}
+dn: uid={{$uid}},ou=people,ou={{.Company}},{{.BaseDN}}
+objectClass: posixAccount
+objectClass: top
+objectClass: inetOrgPerson
+objectClass: kopano-user
+uid: {{$uid}}
+uidNumber: {{AutoIncrement}}
+userPassword: {{$uid}}
+mail: {{$uid}}@{{.MailDomain}}
+kopanoAliases: jonas@{{.MailDomain}}
+kopanoAliases: jonas.brekke@{{.MailDomain}}
+cn: Jonas Brekke
+givenName: Jonas
+sn: Brekke
+kopanoAccount: 1
+kopanoAdmin: 0
+jpegImage:: {{"./jonas.jpeg" | formatAsFileBase64}}
+{{end}}
+
+{{with .}}
+{{$uid := "user2" -}}
+dn: uid={{$uid}},ou=people,ou={{.Company}},{{.BaseDN}}
+objectClass: posixAccount
+objectClass: top
+objectClass: inetOrgPerson
+objectClass: kopano-user
+uid: {{$uid}}
+uidNumber: {{AutoIncrement}}
+userPassword: {{$uid}}
+mail: {{$uid}}@{{.MailDomain}}
+kopanoAliases: timmothy@{{.MailDomain}}
+kopanoAliases: timmothy.schowalter@{{.MailDomain}}
+cn: Timmothy Schöwalter
+givenName: Timmothy
+sn: Schöwalter
+kopanoAccount: 1
+kopanoAdmin: 0
+{{end}}
+
+{{with .}}
+{{$cn := "Mary Poppins" -}}
+dn: cn={{$cn}},ou=contacts,ou={{.Company}},{{.BaseDN}}
+objectClass: inetOrgPerson
+objectClass: top
+objectClass: kopano-contact
+uidNumber: {{AutoIncrement}}
+cn: {{$cn}}
+givenName: Mary
+sn: Poppins
+mail: mary@poppins.org
+{{end}}
+
