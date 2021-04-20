@@ -89,6 +89,8 @@ func (h *ldifMiddleware) Bind(bindDN, bindSimplePw string, conn net.Conn) (resul
 			logger.WithError(err).Infoln("bind error")
 			return ldap.LDAPResultInvalidCredentials, nil
 		}
+
+		return ldap.LDAPResultSuccess, nil
 	}
 
 	return h.next.Bind(bindDN, bindSimplePw, conn)
