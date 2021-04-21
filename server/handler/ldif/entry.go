@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alexedwards/argon2id"
 	"github.com/amoghe/go-crypt"
 	"github.com/go-ldap/ldap/v3"
 )
@@ -40,6 +41,18 @@ func (entry *ldifEntry) validatePassword(bindSimplePw string) error {
 	case "":
 		// No password scheme, direct comparison.
 		bindSimplePwBytes = []byte(bindSimplePw)
+
+	case "ARGON2":
+		// Follows the format used by the Argon2 reference C implementation and looks like this:
+		// $argon2id$v=19$m=65536,t=3,p=2$c29tZXNhbHQ$RdescudvJCsgt3ub+b+dWRWJTmaaJObG
+		match, err := argon2id.ComparePasswordAndHash(bindSimplePw, userPw)
+		if err != nil {
+			return fmt.Errorf("argon2 error: %w", err)
+		}
+		if !match {
+			return fmt.Errorf("invalid credentials")
+		}
+		return nil
 
 	case "CRYPT":
 		// By default the salt is a two character string.
