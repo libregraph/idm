@@ -83,6 +83,9 @@ func serve(cmd *cobra.Command, args []string) error {
 		LDIFMain:   defaultLDIFMain,
 		LDIFConfig: defaultLDIFConfig,
 
+		LDIFDefaultCompany:    defaultLDIFCompany,
+		LDIFDefaultMailDomain: defaultLDIFMailDomain,
+
 		OnReady: func(srv *server.Server) {
 			if defaultSystemdNotify {
 				ok, notifyErr := systemDaemon.SdNotify(false, systemDaemon.SdNotifyReady)
