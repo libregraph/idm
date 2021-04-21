@@ -22,7 +22,9 @@ var (
 	defaultSystemdNotify = false
 
 	defaultLDAPListenAddr = "127.0.0.1:10389"
-	defaultLDAPBaseDN     = ""
+
+	defaultLDAPBaseDN                  = ""
+	defaultLDAPAllowLocalAnonymousBind = false
 
 	defaultLDIFSource = ""
 	defaultLDIFConfig = ""
@@ -46,6 +48,7 @@ func commandServe() *cobra.Command {
 
 	serveCmd.Flags().StringVar(&defaultLDAPListenAddr, "ldap-listen", defaultLDAPListenAddr, "TCP listen address for LDAP requests")
 	serveCmd.Flags().StringVar(&defaultLDAPBaseDN, "ldap-base-dn", defaultLDAPBaseDN, "BaseDN for LDAP requests")
+	serveCmd.Flags().BoolVar(&defaultLDAPAllowLocalAnonymousBind, "ldap-allow-local-anonymous", defaultLDAPAllowLocalAnonymousBind, "Allow anonymous LDAP bind for all local LDAP clients")
 
 	serveCmd.Flags().StringVar(&defaultLDIFSource, "source-ldif", defaultLDIFSource, "Path to an LDIF file loaded on startup")
 	serveCmd.Flags().StringVar(&defaultLDIFConfig, "config-ldif", defaultLDIFConfig, "Path to an LDIF file loaded on startup, this LDIF file is used for bind only")
@@ -67,7 +70,9 @@ func serve(cmd *cobra.Command, args []string) error {
 		Logger: logger,
 
 		LDAPListenAddr: defaultLDAPListenAddr,
-		LDAPBaseDN:     defaultLDAPBaseDN,
+
+		LDAPBaseDN:                  defaultLDAPBaseDN,
+		LDAPAllowLocalAnonymousBind: defaultLDAPAllowLocalAnonymousBind,
 
 		LDIFSource: defaultLDIFSource,
 		LDIFConfig: defaultLDIFConfig,

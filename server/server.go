@@ -69,12 +69,16 @@ func (s *Server) Serve(ctx context.Context) error {
 		logger.WithFields(logrus.Fields{}).Infoln("ready")
 	}()
 
-	s.LDAPHandler, err = ldif.NewLDIFHandler(serveCtx, logger, s.config.LDIFSource, s.config.LDAPBaseDN)
+	ldifHandlerOptions := &ldif.Options{
+		BaseDN:                  s.config.LDAPBaseDN,
+		AllowLocalAnonymousBind: s.config.LDAPAllowLocalAnonymousBind,
+	}
+	s.LDAPHandler, err = ldif.NewLDIFHandler(serveCtx, logger, s.config.LDIFSource, ldifHandlerOptions)
 	if err != nil {
 		return fmt.Errorf("failed to create LDIF source handler: %w", err)
 	}
 	if s.config.LDIFConfig != "" {
-		middleware, middlewareErr := ldif.NewLDIFMiddleware(logger, s.config.LDIFConfig, s.config.LDAPBaseDN)
+		middleware, middlewareErr := ldif.NewLDIFMiddleware(logger, s.config.LDIFConfig, ldifHandlerOptions)
 		if middlewareErr != nil {
 			return fmt.Errorf("failed to create LDIF config handler: %w", middlewareErr)
 		}

@@ -30,11 +30,11 @@ type ldifMiddleware struct {
 	next handler.Handler
 }
 
-func NewLDIFMiddleware(logger logrus.FieldLogger, fn string, baseDN string) (handler.Middleware, error) {
+func NewLDIFMiddleware(logger logrus.FieldLogger, fn string, options *Options) (handler.Middleware, error) {
 	if fn == "" {
 		return nil, fmt.Errorf("file name is empty")
 	}
-	if baseDN == "" {
+	if options.BaseDN == "" {
 		return nil, fmt.Errorf("base dn is empty")
 	}
 
@@ -51,12 +51,12 @@ func NewLDIFMiddleware(logger logrus.FieldLogger, fn string, baseDN string) (han
 		"version":       l.Version,
 		"entries_count": len(l.Entries),
 		"tree_length":   t.Len(),
-		"base_dn":       baseDN,
+		"base_dn":       options.BaseDN,
 	}).Debugln("loaded config LDIF from file")
 
 	return &ldifMiddleware{
 		logger: logger,
-		baseDN: strings.ToLower(baseDN),
+		baseDN: strings.ToLower(options.BaseDN),
 
 		l: l,
 		t: t,
@@ -72,6 +72,12 @@ func (h *ldifMiddleware) WithHandler(next handler.Handler) handler.Handler {
 }
 
 func (h *ldifMiddleware) Bind(bindDN, bindSimplePw string, conn net.Conn) (resultCode ldapserver.LDAPResultCode, err error) {
+	bindDN = strings.ToLower(bindDN)
+
+	if bindDN == "" {
+		return h.next.Bind(bindDN, bindSimplePw, conn)
+	}
+
 	entryRecord, found := h.t.Get([]byte(bindDN))
 	if found {
 		logger := h.logger.WithFields(logrus.Fields{

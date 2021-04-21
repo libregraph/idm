@@ -28,7 +28,9 @@ import (
 type ldifHandler struct {
 	ctx    context.Context
 	logger logrus.FieldLogger
-	baseDN string
+
+	baseDN                  string
+	allowLocalAnonymousBind bool
 
 	l *ldif.LDIF
 	t *suffix.Tree
@@ -40,11 +42,11 @@ type ldifHandler struct {
 
 var _ handler.Handler = (*ldifHandler)(nil) // Verify that *ldifHandler implements handler.Handler.
 
-func NewLDIFHandler(ctx context.Context, logger logrus.FieldLogger, fn string, baseDN string) (handler.Handler, error) {
+func NewLDIFHandler(ctx context.Context, logger logrus.FieldLogger, fn string, options *Options) (handler.Handler, error) {
 	if fn == "" {
 		return nil, fmt.Errorf("file name is empty")
 	}
-	if baseDN == "" {
+	if options.BaseDN == "" {
 		return nil, fmt.Errorf("base dn is empty")
 	}
 
@@ -62,13 +64,15 @@ func NewLDIFHandler(ctx context.Context, logger logrus.FieldLogger, fn string, b
 		"version":       l.Version,
 		"entries_count": len(l.Entries),
 		"tree_length":   t.Len(),
-		"base_dn":       baseDN,
+		"base_dn":       options.BaseDN,
 	}).Debugln("loaded LDIF from file")
 
 	return &ldifHandler{
 		ctx:    ctx,
 		logger: logger,
-		baseDN: strings.ToLower(baseDN),
+
+		baseDN:                  strings.ToLower(options.BaseDN),
+		allowLocalAnonymousBind: options.AllowLocalAnonymousBind,
 
 		l: l,
 		t: t,
@@ -87,12 +91,20 @@ func (h *ldifHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldapserv
 		"remote_addr": conn.RemoteAddr().String(),
 	})
 
-	logger.Debugf("ldap bind request")
+	if err := h.validateBindDN(bindDN, conn); err != nil {
+		logger.WithError(err).Debugln("ldap bind request BindDN validation failed")
+		return ldap.LDAPResultInsufficientAccessRights, nil
+	}
 
-	if !strings.HasSuffix(bindDN, h.baseDN) {
-		err := fmt.Errorf("the BindDN is not in our BaseDN %s", h.baseDN)
-		logger.WithError(err).Debugf("ldap bind error")
-		return ldap.LDAPResultInvalidCredentials, nil
+	if bindDN == "" {
+		logger.Debugf("ldap anonymous bind request")
+		if bindSimplePw == "" {
+			return ldap.LDAPResultSuccess, nil
+		} else {
+			return ldap.LDAPResultInvalidCredentials, nil
+		}
+	} else {
+		logger.Debugf("ldap bind request")
 	}
 
 	entryRecord, found := h.t.Get([]byte(bindDN))
@@ -104,7 +116,7 @@ func (h *ldifHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldapserv
 	entry := entryRecord.(*ldifEntry)
 
 	if err := entry.validatePassword(bindSimplePw); err != nil {
-		logger.WithError(err).Debugf("bind error")
+		logger.WithError(err).Debugf("ldap bind credentials error")
 		return ldap.LDAPResultInvalidCredentials, nil
 	}
 	return ldap.LDAPResultSuccess, nil
@@ -122,26 +134,18 @@ func (h *ldifHandler) Search(bindDN string, searchReq *ldap.SearchRequest, conn 
 	})
 
 	logger.Debugf("ldap search request for %s", searchReq.Filter)
+
+	if err := h.validateBindDN(bindDN, conn); err != nil {
+		logger.WithError(err).Debugln("ldap search request BindDN validation failed")
+		return ldapserver.ServerSearchResult{
+			ResultCode: ldap.LDAPResultInsufficientAccessRights,
+		}, err
+	}
+
 	indexFilter, _ := parseFilterToIndexFilter(searchReq.Filter)
 
-	if bindDN == "" {
-		err := fmt.Errorf("anonymous BindDN not allowed")
-		logger.WithError(err).Debugln("ldap search error")
-		return ldapserver.ServerSearchResult{
-			ResultCode: ldap.LDAPResultInsufficientAccessRights,
-		}, err
-	}
-
-	if !strings.HasSuffix(bindDN, h.baseDN) {
-		err := fmt.Errorf("the BindDN is not in our BaseDN: %s", h.baseDN)
-		logger.WithError(err).Debugln("ldap search error")
-		return ldapserver.ServerSearchResult{
-			ResultCode: ldap.LDAPResultInsufficientAccessRights,
-		}, err
-	}
-
 	if !strings.HasSuffix(searchBaseDN, h.baseDN) {
-		err := fmt.Errorf("search BaseDN is not in our BaseDN %s", h.baseDN)
+		err := fmt.Errorf("ldap search BaseDN is not in our BaseDN %s", h.baseDN)
 		return ldapserver.ServerSearchResult{
 			ResultCode: ldap.LDAPResultInsufficientAccessRights,
 		}, err
@@ -168,14 +172,14 @@ func (h *ldifHandler) Search(bindDN string, searchReq *ldap.SearchRequest, conn 
 				pagingControl.Cookie = pagingCookie
 				pumpCh = make(chan *ldifEntry)
 				h.activeSearchPagings.Set(string(pagingControl.Cookie), pumpCh)
-				logger.WithField("paging_cookie", string(pagingControl.Cookie)).Debugln("search paging pump start")
+				logger.WithField("paging_cookie", string(pagingControl.Cookie)).Debugln("ldap search paging pump start")
 			} else {
 				pumpChRecord, ok := h.activeSearchPagings.Get(string(pagingControl.Cookie))
 				if !ok {
 					return nil, ldap.LDAPResultUnwillingToPerform
 				}
 				if pagingControl.PagingSize > 0 {
-					logger.WithField("paging_cookie", string(pagingControl.Cookie)).Debugln("search paging pump continue")
+					logger.WithField("paging_cookie", string(pagingControl.Cookie)).Debugln("ldap search paging pump continue")
 					pumpCh = pumpChRecord.(chan *ldifEntry)
 					start = false
 				} else {
@@ -301,7 +305,7 @@ func (h *ldifHandler) searchEntriesPump(ctx context.Context, pumpCh chan<- *ldif
 		if pagingControl != nil {
 			h.activeSearchPagings.Remove(string(pagingControl.Cookie))
 			close(pumpCh)
-			h.logger.WithField("paging_cookie", string(pagingControl.Cookie)).Debugln("search paging pump ended")
+			h.logger.WithField("paging_cookie", string(pagingControl.Cookie)).Debugln("ldap search paging pump ended")
 		} else {
 			close(pumpCh)
 		}
@@ -311,10 +315,10 @@ func (h *ldifHandler) searchEntriesPump(ctx context.Context, pumpCh chan<- *ldif
 		select {
 		case pumpCh <- entryRecord:
 		case <-ctx.Done():
-			h.logger.WithField("paging_cookie", string(pagingControl.Cookie)).Warnln("search paging pump context done")
+			h.logger.WithField("paging_cookie", string(pagingControl.Cookie)).Warnln("ldap search paging pump context done")
 			return false
 		case <-time.After(1 * time.Minute):
-			h.logger.WithField("paging_cookie", string(pagingControl.Cookie)).Warnln("search paging pump timeout")
+			h.logger.WithField("paging_cookie", string(pagingControl.Cookie)).Warnln("ldap search paging pump timeout")
 			return false
 		}
 		return true
@@ -354,6 +358,24 @@ func (h *ldifHandler) searchEntriesPump(ctx context.Context, pumpCh chan<- *ldif
 			return false
 		})
 	}
+}
+
+func (h *ldifHandler) validateBindDN(bindDN string, conn net.Conn) error {
+	if bindDN == "" {
+		if h.allowLocalAnonymousBind {
+			host, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
+			if net.ParseIP(host).IsLoopback() {
+				return nil
+			}
+			return fmt.Errorf("anonymous BindDN rejected")
+		}
+		return fmt.Errorf("anonymous BindDN not allowed")
+	}
+
+	if strings.HasSuffix(bindDN, h.baseDN) {
+		return nil
+	}
+	return fmt.Errorf("the BindDN is not in our BaseDN: %s", h.baseDN)
 }
 
 func (h *ldifHandler) Close(bindDN string, conn net.Conn) error {

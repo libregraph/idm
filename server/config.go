@@ -14,7 +14,9 @@ type Config struct {
 	Logger logrus.FieldLogger
 
 	LDAPListenAddr string
-	LDAPBaseDN     string
+
+	LDAPBaseDN                  string
+	LDAPAllowLocalAnonymousBind bool
 
 	LDIFSource string
 	LDIFConfig string
