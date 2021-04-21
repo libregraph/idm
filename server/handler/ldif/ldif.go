@@ -42,7 +42,7 @@ func parseLDIFFile(fn string, options *Options) (*ldif.LDIF, error) {
 		}
 	}
 
-	autoIncrement := 1000
+	autoIncrement := uint64(1000)
 	tpl, err := template.New("tpl").Funcs(template.FuncMap{
 		"WithCompany": func(value string) string {
 			m["Company"] = value
@@ -56,8 +56,12 @@ func parseLDIFFile(fn string, options *Options) (*ldif.LDIF, error) {
 			m["MailDomain"] = value
 			return ""
 		},
-		"AutoIncrement": func() int {
-			autoIncrement++
+		"AutoIncrement": func(values ...uint64) uint64 {
+			if len(values) > 0 {
+				autoIncrement = values[0]
+			} else {
+				autoIncrement++
+			}
 			return autoIncrement
 		},
 		"formatAsBase64": func(s string) string {
