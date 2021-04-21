@@ -201,7 +201,7 @@ handler:
 			for _, child := range packet.Children[2].Children {
 				c, err := ldap.DecodeControl(child)
 				if err != nil {
-					log.Print("handleConnection decode control ERROR: %s", err.Error())
+					log.Printf("handleConnection decode control ERROR: %s", err.Error())
 					continue
 				}
 				controls = append(controls, c)
