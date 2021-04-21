@@ -15,7 +15,7 @@ import (
 	"text/template"
 )
 
-func templateFuncs(m map[string]interface{}, options *Options) template.FuncMap {
+func TemplateFuncs(m map[string]interface{}, options *Options) template.FuncMap {
 	defaults := map[string]interface{}{
 		"Company":    "Default",
 		"BaseDN":     "dc=kopano",
@@ -42,6 +42,9 @@ func templateFuncs(m map[string]interface{}, options *Options) template.FuncMap 
 	}
 
 	autoIncrement := uint64(1000)
+	if v, ok := m["AutoIncrementMin"]; ok {
+		autoIncrement = v.(uint64)
+	}
 
 	return template.FuncMap{
 		"WithCompany": func(value string) string {

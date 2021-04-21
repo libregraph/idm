@@ -48,7 +48,7 @@ func parseLDIFTemplate(r io.Reader, options *Options) (*ldif.LDIF, error) {
 	}
 
 	m := make(map[string]interface{})
-	tpl, err := template.New("tpl").Funcs(templateFuncs(m, options)).Parse(string(text))
+	tpl, err := template.New("tpl").Funcs(TemplateFuncs(m, options)).Parse(string(text))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse LDIF template: %w", err)
 	}
