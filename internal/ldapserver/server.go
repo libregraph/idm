@@ -22,9 +22,6 @@ type Binder interface {
 type Searcher interface {
 	Search(boundDN string, req *ldap.SearchRequest, conn net.Conn) (ServerSearchResult, error)
 }
-type Unbinder interface {
-	Unbind(boundDN string, conn net.Conn) (LDAPResultCode, error)
-}
 type Closer interface {
 	Close(boundDN string, conn net.Conn) error
 }
@@ -32,7 +29,6 @@ type Closer interface {
 type Server struct {
 	BindFns     map[string]Binder
 	SearchFns   map[string]Searcher
-	UnbindFns   map[string]Unbinder
 	CloseFns    map[string]Closer
 	Quit        chan bool
 	EnforceLDAP bool
@@ -61,11 +57,9 @@ func NewServer() *Server {
 	d := defaultHandler{}
 	s.BindFns = make(map[string]Binder)
 	s.SearchFns = make(map[string]Searcher)
-	s.UnbindFns = make(map[string]Unbinder)
 	s.CloseFns = make(map[string]Closer)
 	s.BindFunc("", d)
 	s.SearchFunc("", d)
-	s.UnbindFunc("", d)
 	s.CloseFunc("", d)
 	s.Stats = nil
 	return s
@@ -75,10 +69,6 @@ func (server *Server) BindFunc(baseDN string, f Binder) {
 }
 func (server *Server) SearchFunc(baseDN string, f Searcher) {
 	server.SearchFns[baseDN] = f
-}
-
-func (server *Server) UnbindFunc(baseDN string, f Unbinder) {
-	server.UnbindFns[baseDN] = f
 }
 
 func (server *Server) CloseFunc(baseDN string, f Closer) {
@@ -313,9 +303,6 @@ func (h defaultHandler) Search(boundDN string, req *ldap.SearchRequest, conn net
 	return ServerSearchResult{make([]*ldap.Entry, 0), []string{}, []ldap.Control{}, ldap.LDAPResultSuccess}, nil
 }
 
-func (h defaultHandler) Unbind(boundDN string, conn net.Conn) (LDAPResultCode, error) {
-	return ldap.LDAPResultSuccess, nil
-}
 func (h defaultHandler) Close(boundDN string, conn net.Conn) error {
 	conn.Close()
 	return nil
