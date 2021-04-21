@@ -8,4 +8,9 @@ package ldif
 type Options struct {
 	BaseDN                  string
 	AllowLocalAnonymousBind bool
+
+	DefaultCompany    string
+	DefaultMailDomain string
+
+	TemplateExtraVars map[string]interface{}
 }

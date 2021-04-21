@@ -28,6 +28,9 @@ var (
 
 	defaultLDIFSource = ""
 	defaultLDIFConfig = ""
+
+	defaultLDIFCompany    = "Default"
+	defaultLDIFMailDomain = "kopano.local"
 )
 
 func commandServe() *cobra.Command {
@@ -52,6 +55,9 @@ func commandServe() *cobra.Command {
 
 	serveCmd.Flags().StringVar(&defaultLDIFSource, "source-ldif", defaultLDIFSource, "Path to an LDIF file loaded on startup")
 	serveCmd.Flags().StringVar(&defaultLDIFConfig, "config-ldif", defaultLDIFConfig, "Path to an LDIF file loaded on startup, this LDIF file is used for bind only")
+
+	serveCmd.Flags().StringVar(&defaultLDIFCompany, "ldif-default-company", defaultLDIFCompany, "Sets the default for of the .Company value used in LDIF templates")
+	serveCmd.Flags().StringVar(&defaultLDIFMailDomain, "ldif-default-mail-domain", defaultLDIFMailDomain, "Set the default value of the .MailDomain value used in LDIF templates")
 
 	return serveCmd
 }

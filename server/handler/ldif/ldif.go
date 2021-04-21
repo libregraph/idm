@@ -21,12 +21,27 @@ import (
 )
 
 // parseLDIFFile opens the named file for reading and parses it as LDIF.
-func parseLDIFFile(fn string) (*ldif.LDIF, error) {
+func parseLDIFFile(fn string, options *Options) (*ldif.LDIF, error) {
 	m := map[string]interface{}{
 		"Company":    "Default",
 		"BaseDN":     "dc=kopano",
 		"MailDomain": "kopano.local",
 	}
+	if options != nil {
+		if options.BaseDN != "" {
+			m["BaseDN"] = options.BaseDN
+		}
+		if options.DefaultCompany != "" {
+			m["Company"] = options.DefaultCompany
+		}
+		if options.DefaultMailDomain != "" {
+			m["MailDomain"] = options.DefaultMailDomain
+		}
+		for k, v := range options.TemplateExtraVars {
+			m[k] = v
+		}
+	}
+
 	autoIncrement := 1000
 	tpl, err := template.New("tpl").Funcs(template.FuncMap{
 		"WithCompany": func(value string) string {
@@ -100,7 +115,7 @@ func parseLDIFFile(fn string) (*ldif.LDIF, error) {
 
 // treeFromLDIF makes a tree out of the provided LDIF and if index is not nil,
 // also indexes each entry in the provided index.
-func treeFromLDIF(l *ldif.LDIF, index Index) (*suffix.Tree, error) {
+func treeFromLDIF(l *ldif.LDIF, index Index, options *Options) (*suffix.Tree, error) {
 	t := suffix.NewTree()
 
 	// NOTE(longsleep): Meh nmcldap vs goldap - for now create the type which we need to return for search.

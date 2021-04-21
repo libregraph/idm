@@ -72,6 +72,10 @@ func (s *Server) Serve(ctx context.Context) error {
 	ldifHandlerOptions := &ldif.Options{
 		BaseDN:                  s.config.LDAPBaseDN,
 		AllowLocalAnonymousBind: s.config.LDAPAllowLocalAnonymousBind,
+
+		DefaultCompany:    s.config.LDIFDefaultCompany,
+		DefaultMailDomain: s.config.LDIFDefaultMailDomain,
+		TemplateExtraVars: s.config.LDIFTemplateExtraVars,
 	}
 	s.LDAPHandler, err = ldif.NewLDIFHandler(serveCtx, logger, s.config.LDIFSource, ldifHandlerOptions)
 	if err != nil {

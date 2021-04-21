@@ -21,5 +21,9 @@ type Config struct {
 	LDIFSource string
 	LDIFConfig string
 
+	LDIFDefaultCompany    string
+	LDIFDefaultMailDomain string
+	LDIFTemplateExtraVars map[string]interface{}
+
 	OnReady func(*Server)
 }

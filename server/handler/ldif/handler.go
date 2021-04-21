@@ -50,13 +50,13 @@ func NewLDIFHandler(ctx context.Context, logger logrus.FieldLogger, fn string, o
 		return nil, fmt.Errorf("base dn is empty")
 	}
 
-	l, err := parseLDIFFile(fn)
+	l, err := parseLDIFFile(fn, options)
 	if err != nil {
 		return nil, err
 	}
 
 	index := newIndexMapRegister()
-	t, err := treeFromLDIF(l, index)
+	t, err := treeFromLDIF(l, index, options)
 	if err != nil {
 		return nil, err
 	}

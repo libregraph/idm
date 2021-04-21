@@ -38,12 +38,12 @@ func NewLDIFMiddleware(logger logrus.FieldLogger, fn string, options *Options) (
 		return nil, fmt.Errorf("base dn is empty")
 	}
 
-	l, err := parseLDIFFile(fn)
+	l, err := parseLDIFFile(fn, options)
 	if err != nil {
 		return nil, err
 	}
 
-	t, err := treeFromLDIF(l, nil)
+	t, err := treeFromLDIF(l, nil, options)
 	if err != nil {
 		return nil, err
 	}
