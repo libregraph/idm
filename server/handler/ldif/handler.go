@@ -396,5 +396,10 @@ func (h *ldifHandler) validateBindDN(bindDN string, conn net.Conn) error {
 }
 
 func (h *ldifHandler) Close(bindDN string, conn net.Conn) error {
+	h.logger.WithFields(logrus.Fields{
+		"bind_dn":     bindDN,
+		"remote_addr": conn.RemoteAddr().String(),
+	}).Debugln("ldap close")
+
 	return nil
 }
