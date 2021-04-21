@@ -7,7 +7,6 @@ package ldif
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
@@ -43,83 +42,13 @@ func parseLDIFFile(fn string, options *Options) (*ldif.LDIF, error) {
 // parseLDIFTemplate exectues the provided text template and then parses the
 // result as LDIF.
 func parseLDIFTemplate(r io.Reader, options *Options) (*ldif.LDIF, error) {
-	m := map[string]interface{}{
-		"Company":    "Default",
-		"BaseDN":     "dc=kopano",
-		"MailDomain": "kopano.local",
-	}
-	if options != nil {
-		if options.BaseDN != "" {
-			m["BaseDN"] = options.BaseDN
-		}
-		if options.DefaultCompany != "" {
-			m["Company"] = options.DefaultCompany
-		}
-		if options.DefaultMailDomain != "" {
-			m["MailDomain"] = options.DefaultMailDomain
-		}
-		for k, v := range options.TemplateExtraVars {
-			m[k] = v
-		}
-	}
-
 	text, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
 
-	autoIncrement := uint64(1000)
-	tpl, err := template.New("tpl").Funcs(template.FuncMap{
-		"WithCompany": func(value string) string {
-			m["Company"] = value
-			return ""
-		},
-		"WithBaseDN": func(value string) string {
-			m["BaseDN"] = value
-			return ""
-		},
-		"WithMailDomain": func(value string) string {
-			m["MailDomain"] = value
-			return ""
-		},
-		"AutoIncrement": func(values ...uint64) uint64 {
-			if len(values) > 0 {
-				autoIncrement = values[0]
-			} else {
-				autoIncrement++
-			}
-			return autoIncrement
-		},
-		"formatAsBase64": func(s string) string {
-			return base64.StdEncoding.EncodeToString([]byte(s))
-		},
-		"formatAsFileBase64": func(fn string) (string, error) {
-			fn, err := filepath.Abs(fn)
-			if err != nil {
-				return "", err
-			}
-
-			f, err := os.Open(fn)
-			if err != nil {
-				return "", fmt.Errorf("LDIF template fromFile open failed with error: %w", err)
-			}
-			defer f.Close()
-
-			reader := io.LimitReader(f, 1024*1024+1)
-
-			var buf bytes.Buffer
-			encoder := base64.NewEncoder(base64.StdEncoding, &buf)
-			n, err := io.Copy(encoder, reader)
-			if err != nil {
-				return "", fmt.Errorf("LDIF template fromFile error: %w", err)
-			}
-			if n > 1024*1024 {
-				return "", fmt.Errorf("LDIF template fromFile size limit exceeded: %s", fn)
-			}
-
-			return buf.String(), nil
-		},
-	}).Parse(string(text))
+	m := make(map[string]interface{})
+	tpl, err := template.New("tpl").Funcs(templateFuncs(m, options)).Parse(string(text))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse LDIF template: %w", err)
 	}
