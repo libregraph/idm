@@ -76,6 +76,8 @@ func (s *Server) Serve(ctx context.Context) error {
 		DefaultCompany:    s.config.LDIFDefaultCompany,
 		DefaultMailDomain: s.config.LDIFDefaultMailDomain,
 		TemplateExtraVars: s.config.LDIFTemplateExtraVars,
+
+		TemplateDebug: os.Getenv("KIDM_TEMPLATE_DEBUG") != "",
 	}
 	s.LDAPHandler, err = ldif.NewLDIFHandler(serveCtx, logger, s.config.LDIFMain, ldifHandlerOptions)
 	if err != nil {

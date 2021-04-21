@@ -22,6 +22,27 @@ import (
 
 // parseLDIFFile opens the named file for reading and parses it as LDIF.
 func parseLDIFFile(fn string, options *Options) (*ldif.LDIF, error) {
+	fn, err := filepath.Abs(fn)
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := os.Open(fn)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	if options.TemplateEngineDisabled {
+		return parseLDIF(f, options)
+	} else {
+		return parseLDIFTemplate(f, options)
+	}
+}
+
+// parseLDIFTemplate exectues the provided text template and then parses the
+// result as LDIF.
+func parseLDIFTemplate(r io.Reader, options *Options) (*ldif.LDIF, error) {
 	m := map[string]interface{}{
 		"Company":    "Default",
 		"BaseDN":     "dc=kopano",
@@ -40,6 +61,11 @@ func parseLDIFFile(fn string, options *Options) (*ldif.LDIF, error) {
 		for k, v := range options.TemplateExtraVars {
 			m[k] = v
 		}
+	}
+
+	text, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
 	}
 
 	autoIncrement := uint64(1000)
@@ -93,23 +119,27 @@ func parseLDIFFile(fn string, options *Options) (*ldif.LDIF, error) {
 
 			return buf.String(), nil
 		},
-	}).ParseFiles(fn)
+	}).Parse(string(text))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse LDIF template: %w", err)
 	}
 
 	var buf bytes.Buffer
-	err = tpl.ExecuteTemplate(&buf, filepath.Base(fn), m)
+	err = tpl.Execute(&buf, m)
 	if err != nil {
 		return nil, fmt.Errorf("failed to process LDIF template: %w", err)
 	}
 
-	if false {
-		fmt.Println(buf.String())
+	if options.TemplateDebug {
+		fmt.Println("---\n", buf.String(), "\n----")
 	}
 
+	return parseLDIF(&buf, options)
+}
+
+func parseLDIF(r io.Reader, options *Options) (*ldif.LDIF, error) {
 	l := &ldif.LDIF{}
-	err = ldif.Unmarshal(&buf, l)
+	err := ldif.Unmarshal(r, l)
 	if err != nil {
 		return nil, err
 	}

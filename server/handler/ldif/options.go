@@ -12,5 +12,7 @@ type Options struct {
 	DefaultCompany    string
 	DefaultMailDomain string
 
-	TemplateExtraVars map[string]interface{}
+	TemplateExtraVars      map[string]interface{}
+	TemplateEngineDisabled bool
+	TemplateDebug          bool
 }
