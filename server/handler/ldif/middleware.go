@@ -6,6 +6,7 @@
 package ldif
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -73,6 +74,17 @@ func (h *ldifMiddleware) WithHandler(next handler.Handler) handler.Handler {
 	h.next = next
 
 	return h
+}
+
+func (h *ldifMiddleware) WithContext(ctx context.Context) handler.Handler {
+	if ctx == nil {
+		panic("nil context")
+	}
+
+	h2 := new(ldifMiddleware)
+	*h2 = *h
+	h2.next = h.next.WithContext(ctx)
+	return h2
 }
 
 func (h *ldifMiddleware) Bind(bindDN, bindSimplePw string, conn net.Conn) (resultCode ldapserver.LDAPResultCode, err error) {

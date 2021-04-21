@@ -41,6 +41,30 @@ func NewServer(c *Config) (*Server, error) {
 		logger: c.Logger,
 	}
 
+	ldifHandlerOptions := &ldif.Options{
+		BaseDN:                  s.config.LDAPBaseDN,
+		AllowLocalAnonymousBind: s.config.LDAPAllowLocalAnonymousBind,
+
+		DefaultCompany:    s.config.LDIFDefaultCompany,
+		DefaultMailDomain: s.config.LDIFDefaultMailDomain,
+		TemplateExtraVars: s.config.LDIFTemplateExtraVars,
+
+		TemplateDebug: os.Getenv("KIDM_TEMPLATE_DEBUG") != "",
+	}
+
+	var err error
+	s.LDAPHandler, err = ldif.NewLDIFHandler(s.logger, s.config.LDIFMain, ldifHandlerOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create LDIF source handler: %w", err)
+	}
+	if s.config.LDIFConfig != "" {
+		middleware, middlewareErr := ldif.NewLDIFMiddleware(s.logger, s.config.LDIFConfig, ldifHandlerOptions)
+		if middlewareErr != nil {
+			return nil, fmt.Errorf("failed to create LDIF config handler: %w", middlewareErr)
+		}
+		s.LDAPHandler = middleware.WithHandler(s.LDAPHandler)
+	}
+
 	return s, nil
 }
 
@@ -69,28 +93,6 @@ func (s *Server) Serve(ctx context.Context) error {
 		logger.WithFields(logrus.Fields{}).Infoln("ready")
 	}()
 
-	ldifHandlerOptions := &ldif.Options{
-		BaseDN:                  s.config.LDAPBaseDN,
-		AllowLocalAnonymousBind: s.config.LDAPAllowLocalAnonymousBind,
-
-		DefaultCompany:    s.config.LDIFDefaultCompany,
-		DefaultMailDomain: s.config.LDIFDefaultMailDomain,
-		TemplateExtraVars: s.config.LDIFTemplateExtraVars,
-
-		TemplateDebug: os.Getenv("KIDM_TEMPLATE_DEBUG") != "",
-	}
-	s.LDAPHandler, err = ldif.NewLDIFHandler(serveCtx, logger, s.config.LDIFMain, ldifHandlerOptions)
-	if err != nil {
-		return fmt.Errorf("failed to create LDIF source handler: %w", err)
-	}
-	if s.config.LDIFConfig != "" {
-		middleware, middlewareErr := ldif.NewLDIFMiddleware(logger, s.config.LDIFConfig, ldifHandlerOptions)
-		if middlewareErr != nil {
-			return fmt.Errorf("failed to create LDIF config handler: %w", middlewareErr)
-		}
-		s.LDAPHandler = middleware.WithHandler(s.LDAPHandler)
-	}
-
 	ldapListener, listenErr := net.Listen("tcp", s.config.LDAPListenAddr)
 	if listenErr != nil {
 		return fmt.Errorf("failed to create LDAP listener: %w", listenErr)
@@ -108,9 +110,10 @@ func (s *Server) Serve(ctx context.Context) error {
 	s.LDAPServer = ldapserver.NewServer()
 	s.LDAPServer.EnforceLDAP = false
 
-	s.LDAPServer.BindFunc("", s.LDAPHandler)
-	s.LDAPServer.SearchFunc("", s.LDAPHandler)
-	s.LDAPServer.CloseFunc("", s.LDAPHandler)
+	ldapHandler := s.LDAPHandler.WithContext(serveCtx)
+	s.LDAPServer.BindFunc("", ldapHandler)
+	s.LDAPServer.SearchFunc("", ldapHandler)
+	s.LDAPServer.CloseFunc("", ldapHandler)
 
 	serversWg.Add(1)
 	go func(l net.Listener) {

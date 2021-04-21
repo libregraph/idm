@@ -6,6 +6,8 @@
 package handler
 
 import (
+	"context"
+
 	"stash.kopano.io/kgol/kidm/internal/ldapserver"
 )
 
@@ -14,6 +16,8 @@ type Handler interface {
 	ldapserver.Binder
 	ldapserver.Searcher
 	ldapserver.Closer
+
+	WithContext(context.Context) Handler
 }
 
 // Interface for middlewares.

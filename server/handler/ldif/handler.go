@@ -26,11 +26,12 @@ import (
 )
 
 type ldifHandler struct {
-	ctx    context.Context
 	logger logrus.FieldLogger
 
 	baseDN                  string
 	allowLocalAnonymousBind bool
+
+	ctx context.Context
 
 	l *ldif.LDIF
 	t *suffix.Tree
@@ -42,7 +43,7 @@ type ldifHandler struct {
 
 var _ handler.Handler = (*ldifHandler)(nil) // Verify that *ldifHandler implements handler.Handler.
 
-func NewLDIFHandler(ctx context.Context, logger logrus.FieldLogger, fn string, options *Options) (handler.Handler, error) {
+func NewLDIFHandler(logger logrus.FieldLogger, fn string, options *Options) (handler.Handler, error) {
 	if fn == "" {
 		return nil, fmt.Errorf("file name is empty")
 	}
@@ -72,11 +73,12 @@ func NewLDIFHandler(ctx context.Context, logger logrus.FieldLogger, fn string, o
 	}).Debugln("loaded LDIF from file")
 
 	return &ldifHandler{
-		ctx:    ctx,
 		logger: logger,
 
 		baseDN:                  strings.ToLower(options.BaseDN),
 		allowLocalAnonymousBind: options.AllowLocalAnonymousBind,
+
+		ctx: context.Background(),
 
 		l: l,
 		t: t,
@@ -85,6 +87,17 @@ func NewLDIFHandler(ctx context.Context, logger logrus.FieldLogger, fn string, o
 
 		activeSearchPagings: cmap.New(),
 	}, nil
+}
+
+func (h *ldifHandler) WithContext(ctx context.Context) handler.Handler {
+	if ctx == nil {
+		panic("nil context")
+	}
+
+	h2 := new(ldifHandler)
+	*h2 = *h
+	h2.ctx = ctx
+	return h2
 }
 
 func (h *ldifHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldapserver.LDAPResultCode, error) {
