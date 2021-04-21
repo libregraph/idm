@@ -3,7 +3,7 @@
  * Copyright 2019 Kopano and its licensors
  */
 
-package main
+package serve
 
 import (
 	"os"

@@ -32,7 +32,7 @@ VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2>/dev/null |
 			cat $(CURDIR)/.version 2> /dev/null || echo 0.0.0-unreleased)
 PKGS     = $(or $(PKG),$(shell $(GO) list -mod=readonly ./... | grep -v "^$(PACKAGE)/vendor/"))
 TESTPKGS = $(shell $(GO) list -mod=readonly -f '{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' $(PKGS) 2>/dev/null)
-CMDS     = $(or $(CMD),$(addprefix cmd/,$(notdir $(shell find "$(PWD)/cmd/" -type d))))
+CMDS     = $(or $(CMD),$(addprefix cmd/,$(notdir $(shell find "$(PWD)/cmd/" -maxdepth 1 -type d))))
 TIMEOUT  = 30
 
 # Build
