@@ -9,7 +9,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof" // Include pprof for debugging, its only enabled when --with-pprof is given.
 	"os"
+	"runtime"
 
 	systemDaemon "github.com/coreos/go-systemd/v22/daemon"
 	"github.com/sirupsen/logrus"
@@ -33,6 +36,9 @@ var (
 
 	DefaultLDIFCompany    = "Default"
 	DefaultLDIFMailDomain = "kopano.local"
+
+	DefaultWithPprof       = false
+	DefaultPprofListenAddr = "127.0.0.1:6060"
 )
 
 func init() {
@@ -82,6 +88,9 @@ func CommandServe() *cobra.Command {
 
 	serveCmd.Flags().StringVar(&DefaultLDIFCompany, "ldif-default-company", DefaultLDIFCompany, "Sets the default for of the .Company value used in LDIF templates")
 	serveCmd.Flags().StringVar(&DefaultLDIFMailDomain, "ldif-default-mail-domain", DefaultLDIFMailDomain, "Set the default value of the .MailDomain value used in LDIF templates")
+
+	serveCmd.Flags().BoolVar(&DefaultWithPprof, "with-pprof", DefaultWithPprof, "With pprof enabled")
+	serveCmd.Flags().StringVar(&DefaultPprofListenAddr, "pprof-listen", DefaultPprofListenAddr, "TCP listen address for pprof")
 
 	return serveCmd
 }
@@ -144,6 +153,20 @@ func (bs *bootstrap) configure(ctx context.Context, cmd *cobra.Command, args []s
 	bs.srv, err = server.NewServer(cfg)
 	if err != nil {
 		return err
+	}
+
+	// Profiling support.
+	withPprof, _ := cmd.Flags().GetBool("with-pprof")
+	pprofListenAddr, _ := cmd.Flags().GetString("pprof-listen")
+	if withPprof && pprofListenAddr != "" {
+		runtime.SetMutexProfileFraction(5)
+		go func() {
+			pprofListen := pprofListenAddr
+			logger.WithField("listenAddr", pprofListen).Infoln("pprof enabled, starting listener")
+			if listenErr := http.ListenAndServe(pprofListen, nil); listenErr != nil {
+				logger.WithError(listenErr).Errorln("unable to start pprof listener")
+			}
+		}()
 	}
 
 	return nil
