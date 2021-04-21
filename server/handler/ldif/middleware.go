@@ -90,7 +90,7 @@ func (h *ldifMiddleware) WithContext(ctx context.Context) handler.Handler {
 func (h *ldifMiddleware) Bind(bindDN, bindSimplePw string, conn net.Conn) (resultCode ldapserver.LDAPResultCode, err error) {
 	bindDN = strings.ToLower(bindDN)
 
-	if bindDN == "" {
+	if bindSimplePw == "" { // Empty password means anonymous bind.
 		return h.next.Bind(bindDN, bindSimplePw, conn)
 	}
 

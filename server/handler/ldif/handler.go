@@ -113,12 +113,12 @@ func (h *ldifHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldapserv
 		return ldap.LDAPResultInsufficientAccessRights, nil
 	}
 
-	if bindDN == "" {
+	if bindSimplePw == "" {
 		logger.Debugf("ldap anonymous bind request")
-		if bindSimplePw == "" {
+		if bindDN == "" {
 			return ldap.LDAPResultSuccess, nil
 		} else {
-			return ldap.LDAPResultInvalidCredentials, nil
+			return ldap.LDAPResultUnwillingToPerform, nil
 		}
 	} else {
 		logger.Debugf("ldap bind request")
