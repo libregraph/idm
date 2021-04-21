@@ -23,15 +23,32 @@ var (
 
 	DefaultLDAPListenAddr = "127.0.0.1:10389"
 
-	DefaultLDAPBaseDN                  = ""
+	DefaultLDAPBaseDN                  = os.Getenv("KIDMD_DEFAULT_LDAP_BASEDN")
 	DefaultLDAPAllowLocalAnonymousBind = false
 
-	DefaultLDIFMain   = ""
-	DefaultLDIFConfig = ""
+	DefaultLDIFMain   = os.Getenv("KIDMD_DEFAULT_LDIF_MAIN")
+	DefaultLDIFConfig = os.Getenv("KIDMD_DEFAULT_LDIF_CONFIG")
 
 	DefaultLDIFCompany    = "Default"
 	DefaultLDIFMailDomain = "kopano.local"
 )
+
+func init() {
+	envDefaultLDAPListenAddr := os.Getenv("KIDMD_DEFAULT_LDAP_LISTEN")
+	if envDefaultLDAPListenAddr != "" {
+		DefaultLDAPListenAddr = envDefaultLDAPListenAddr
+	}
+
+	envDefaultLDIFCompany := os.Getenv("KIDMD_DEFAULT_LDIF_COMPANY")
+	if envDefaultLDIFCompany != "" {
+		DefaultLDIFCompany = envDefaultLDIFCompany
+	}
+
+	envDefaultLDIFMailDomain := os.Getenv("KIDMD_DEFAULT_LDIF_MAIL_DOMAIN")
+	if envDefaultLDIFMailDomain != "" {
+		DefaultLDIFMailDomain = envDefaultLDIFMailDomain
+	}
+}
 
 func CommandServe() *cobra.Command {
 	serveCmd := &cobra.Command{
