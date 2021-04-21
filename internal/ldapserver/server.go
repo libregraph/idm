@@ -241,6 +241,7 @@ handler:
 	}
 
 	conn.Close()
+	server.Stats.countConnsClose(1)
 }
 
 func sendPacket(conn net.Conn, packet *ber.Packet) error {

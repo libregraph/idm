@@ -23,7 +23,10 @@ func MustRegister(reg prometheus.Registerer, cs ...prometheus.Collector) {
 type ldapServerCollector struct {
 	stats *ldapserver.Stats
 
-	connsDesc   *prometheus.Desc
+	connsTotalDesc   *prometheus.Desc
+	connsCurrentDesc *prometheus.Desc
+	connsMaxDesc     *prometheus.Desc
+
 	bindsDesc   *prometheus.Desc
 	unbindsDesc *prometheus.Desc
 	searchesDsc *prometheus.Desc
@@ -33,9 +36,21 @@ func NewLDAPServerCollector(s *ldapserver.Server) prometheus.Collector {
 	return &ldapServerCollector{
 		stats: s.Stats,
 
-		connsDesc: prometheus.NewDesc(
+		connsTotalDesc: prometheus.NewDesc(
 			prometheus.BuildFQName("", metricsSubsystemLDAPServer, "connections_total"),
 			"Total number of incoming LDAP connections",
+			nil,
+			nil,
+		),
+		connsCurrentDesc: prometheus.NewDesc(
+			prometheus.BuildFQName("", metricsSubsystemLDAPServer, "connections_current"),
+			"Current number of concurrent established incoming LDAP connections",
+			nil,
+			nil,
+		),
+		connsMaxDesc: prometheus.NewDesc(
+			prometheus.BuildFQName("", metricsSubsystemLDAPServer, "connections_max"),
+			"Maximum number of concurrent established incoming LDAP connections",
 			nil,
 			nil,
 		),
@@ -73,9 +88,21 @@ func (lc *ldapServerCollector) Collect(ch chan<- prometheus.Metric) {
 	stats := lc.stats.Clone()
 
 	ch <- prometheus.MustNewConstMetric(
-		lc.connsDesc,
+		lc.connsTotalDesc,
 		prometheus.CounterValue,
 		float64(stats.Conns),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		lc.connsCurrentDesc,
+		prometheus.GaugeValue,
+		float64(stats.ConnsCurrent),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		lc.connsMaxDesc,
+		prometheus.CounterValue,
+		float64(stats.ConnsMax),
 	)
 
 	ch <- prometheus.MustNewConstMetric(

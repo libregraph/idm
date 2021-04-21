@@ -10,22 +10,36 @@ import (
 )
 
 type Stats struct {
-	Conns      int
-	Binds      int
-	Unbinds    int
-	Searches   int
-	statsMutex sync.RWMutex
+	Conns        uint64
+	ConnsCurrent uint64
+	ConnsMax     uint64
+	Binds        uint64
+	Unbinds      uint64
+	Searches     uint64
+	statsMutex   sync.RWMutex
 }
 
-func (stats *Stats) countConns(delta int) {
+func (stats *Stats) countConns(delta uint64) {
 	if stats != nil {
 		stats.statsMutex.Lock()
 		stats.Conns += delta
+		stats.ConnsCurrent += delta
+		if stats.ConnsCurrent > stats.ConnsMax {
+			stats.ConnsMax = stats.ConnsCurrent
+		}
 		stats.statsMutex.Unlock()
 	}
 }
 
-func (stats *Stats) countBinds(delta int) {
+func (stats *Stats) countConnsClose(delta uint64) {
+	if stats != nil {
+		stats.statsMutex.Lock()
+		stats.ConnsCurrent -= delta
+		stats.statsMutex.Unlock()
+	}
+}
+
+func (stats *Stats) countBinds(delta uint64) {
 	if stats != nil {
 		stats.statsMutex.Lock()
 		stats.Binds += delta
@@ -33,7 +47,7 @@ func (stats *Stats) countBinds(delta int) {
 	}
 }
 
-func (stats *Stats) countUnbinds(delta int) {
+func (stats *Stats) countUnbinds(delta uint64) {
 	if stats != nil {
 		stats.statsMutex.Lock()
 		stats.Unbinds += delta
@@ -41,7 +55,7 @@ func (stats *Stats) countUnbinds(delta int) {
 	}
 }
 
-func (stats *Stats) countSearches(delta int) {
+func (stats *Stats) countSearches(delta uint64) {
 	if stats != nil {
 		stats.statsMutex.Lock()
 		stats.Searches += delta
@@ -55,6 +69,7 @@ func (stats *Stats) Clone() *Stats {
 		s2 = &Stats{}
 		stats.statsMutex.RLock()
 		s2.Conns = stats.Conns
+		s2.ConnsCurrent = stats.ConnsCurrent
 		s2.Binds = stats.Binds
 		s2.Unbinds = stats.Unbinds
 		s2.Searches = stats.Searches
