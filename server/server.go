@@ -77,7 +77,7 @@ func (s *Server) Serve(ctx context.Context) error {
 		DefaultMailDomain: s.config.LDIFDefaultMailDomain,
 		TemplateExtraVars: s.config.LDIFTemplateExtraVars,
 	}
-	s.LDAPHandler, err = ldif.NewLDIFHandler(serveCtx, logger, s.config.LDIFSource, ldifHandlerOptions)
+	s.LDAPHandler, err = ldif.NewLDIFHandler(serveCtx, logger, s.config.LDIFMain, ldifHandlerOptions)
 	if err != nil {
 		return fmt.Errorf("failed to create LDIF source handler: %w", err)
 	}

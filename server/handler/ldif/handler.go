@@ -50,6 +50,9 @@ func NewLDIFHandler(ctx context.Context, logger logrus.FieldLogger, fn string, o
 		return nil, fmt.Errorf("base dn is empty")
 	}
 
+	logger.WithFields(logrus.Fields{
+		"fn": fn,
+	}).Debugln("loading LDIF from file")
 	l, err := parseLDIFFile(fn, options)
 	if err != nil {
 		return nil, err
@@ -65,6 +68,7 @@ func NewLDIFHandler(ctx context.Context, logger logrus.FieldLogger, fn string, o
 		"entries_count": len(l.Entries),
 		"tree_length":   t.Len(),
 		"base_dn":       options.BaseDN,
+		"fn":            fn,
 	}).Debugln("loaded LDIF from file")
 
 	return &ldifHandler{

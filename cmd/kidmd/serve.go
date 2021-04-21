@@ -26,7 +26,7 @@ var (
 	defaultLDAPBaseDN                  = ""
 	defaultLDAPAllowLocalAnonymousBind = false
 
-	defaultLDIFSource = ""
+	defaultLDIFMain   = ""
 	defaultLDIFConfig = ""
 
 	defaultLDIFCompany    = "Default"
@@ -53,7 +53,7 @@ func commandServe() *cobra.Command {
 	serveCmd.Flags().StringVar(&defaultLDAPBaseDN, "ldap-base-dn", defaultLDAPBaseDN, "BaseDN for LDAP requests")
 	serveCmd.Flags().BoolVar(&defaultLDAPAllowLocalAnonymousBind, "ldap-allow-local-anonymous", defaultLDAPAllowLocalAnonymousBind, "Allow anonymous LDAP bind for all local LDAP clients")
 
-	serveCmd.Flags().StringVar(&defaultLDIFSource, "source-ldif", defaultLDIFSource, "Path to an LDIF file loaded on startup")
+	serveCmd.Flags().StringVar(&defaultLDIFMain, "main-ldif", defaultLDIFMain, "Path to an LDIF file loaded on startup")
 	serveCmd.Flags().StringVar(&defaultLDIFConfig, "config-ldif", defaultLDIFConfig, "Path to an LDIF file loaded on startup, this LDIF file is used for bind only")
 
 	serveCmd.Flags().StringVar(&defaultLDIFCompany, "ldif-default-company", defaultLDIFCompany, "Sets the default for of the .Company value used in LDIF templates")
@@ -80,7 +80,7 @@ func serve(cmd *cobra.Command, args []string) error {
 		LDAPBaseDN:                  defaultLDAPBaseDN,
 		LDAPAllowLocalAnonymousBind: defaultLDAPAllowLocalAnonymousBind,
 
-		LDIFSource: defaultLDIFSource,
+		LDIFMain:   defaultLDIFMain,
 		LDIFConfig: defaultLDIFConfig,
 
 		OnReady: func(srv *server.Server) {

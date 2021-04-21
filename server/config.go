@@ -18,7 +18,7 @@ type Config struct {
 	LDAPBaseDN                  string
 	LDAPAllowLocalAnonymousBind bool
 
-	LDIFSource string
+	LDIFMain   string
 	LDIFConfig string
 
 	LDIFDefaultCompany    string
