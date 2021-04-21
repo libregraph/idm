@@ -15,6 +15,8 @@ import (
 	"runtime"
 
 	systemDaemon "github.com/coreos/go-systemd/v22/daemon"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -39,6 +41,9 @@ var (
 
 	DefaultWithPprof       = false
 	DefaultPprofListenAddr = "127.0.0.1:6060"
+
+	DefaultWithMetrics       = false
+	DefaultMetricsListenAddr = "127.0.0.1:6389"
 )
 
 func init() {
@@ -91,6 +96,9 @@ func CommandServe() *cobra.Command {
 
 	serveCmd.Flags().BoolVar(&DefaultWithPprof, "with-pprof", DefaultWithPprof, "With pprof enabled")
 	serveCmd.Flags().StringVar(&DefaultPprofListenAddr, "pprof-listen", DefaultPprofListenAddr, "TCP listen address for pprof")
+
+	serveCmd.Flags().BoolVar(&DefaultWithMetrics, "with-metrics", DefaultWithMetrics, "Enable metrics")
+	serveCmd.Flags().StringVar(&DefaultMetricsListenAddr, "metrics-listen", DefaultMetricsListenAddr, "TCP listen address for metrics")
 
 	return serveCmd
 }
@@ -148,6 +156,26 @@ func (bs *bootstrap) configure(ctx context.Context, cmd *cobra.Command, args []s
 				}
 			}
 		},
+	}
+
+	// Metrics support.
+	if DefaultWithMetrics && DefaultMetricsListenAddr != "" {
+		metricsRegistry := prometheus.NewPedanticRegistry()
+		cfg.Metrics = prometheus.WrapRegistererWithPrefix("kidm_", metricsRegistry)
+
+		// Add the standard process and Go metrics to the custom registry.
+		metricsRegistry.MustRegister(
+			prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}),
+			prometheus.NewGoCollector(),
+		)
+		go func() {
+			handler := http.NewServeMux()
+			logger.WithField("listenAddr", DefaultMetricsListenAddr).Infoln("metrics enabled, starting listener")
+			handler.Handle("/metrics", promhttp.HandlerFor(metricsRegistry, promhttp.HandlerOpts{}))
+			if listenErr := http.ListenAndServe(DefaultMetricsListenAddr, handler); listenErr != nil {
+				logger.WithError(listenErr).Errorln("unable to start metrics listener")
+			}
+		}()
 	}
 
 	bs.srv, err = server.NewServer(cfg)

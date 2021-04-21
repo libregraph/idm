@@ -52,6 +52,7 @@ func (stats *Stats) countSearches(delta int) {
 func (stats *Stats) Clone() *Stats {
 	var s2 *Stats
 	if stats != nil {
+		s2 = &Stats{}
 		stats.statsMutex.RLock()
 		s2.Conns = stats.Conns
 		s2.Binds = stats.Binds

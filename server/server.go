@@ -65,6 +65,14 @@ func NewServer(c *Config) (*Server, error) {
 		s.LDAPHandler = middleware.WithHandler(s.LDAPHandler)
 	}
 
+	s.LDAPServer = ldapserver.NewServer()
+	s.LDAPServer.EnforceLDAP = false
+
+	if c.Metrics != nil {
+		s.LDAPServer.SetStats(true)
+		MustRegister(c.Metrics, NewLDAPServerCollector(s.LDAPServer))
+	}
+
 	return s, nil
 }
 
@@ -106,9 +114,6 @@ func (s *Server) Serve(ctx context.Context) error {
 	defer loggerWriter.Close()
 	log.SetFlags(0)
 	log.SetOutput(loggerWriter)
-
-	s.LDAPServer = ldapserver.NewServer()
-	s.LDAPServer.EnforceLDAP = false
 
 	ldapHandler := s.LDAPHandler.WithContext(serveCtx)
 	s.LDAPServer.BindFunc("", ldapHandler)

@@ -6,6 +6,7 @@
 package server
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,6 +25,8 @@ type Config struct {
 	LDIFDefaultCompany    string
 	LDIFDefaultMailDomain string
 	LDIFTemplateExtraVars map[string]interface{}
+
+	Metrics prometheus.Registerer
 
 	OnReady func(*Server)
 }
