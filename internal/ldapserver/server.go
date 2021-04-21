@@ -10,7 +10,6 @@ import (
 	"log"
 	"net"
 	"strings"
-	"sync"
 
 	"github.com/go-asn1-ber/asn1-ber"
 	"github.com/go-ldap/ldap/v3"
@@ -33,14 +32,6 @@ type Server struct {
 	Quit        chan bool
 	EnforceLDAP bool
 	Stats       *Stats
-}
-
-type Stats struct {
-	Conns      int
-	Binds      int
-	Unbinds    int
-	Searches   int
-	statsMutex sync.Mutex
 }
 
 type ServerSearchResult struct {
@@ -106,11 +97,7 @@ func (server *Server) SetStats(enable bool) {
 }
 
 func (server *Server) GetStats() Stats {
-	defer func() {
-		server.Stats.statsMutex.Unlock()
-	}()
-	server.Stats.statsMutex.Lock()
-	return *server.Stats
+	return *server.Stats.Clone()
 }
 
 func (server *Server) ListenAndServe(listenString string) error {
@@ -306,36 +293,4 @@ func (h defaultHandler) Search(boundDN string, req *ldap.SearchRequest, conn net
 func (h defaultHandler) Close(boundDN string, conn net.Conn) error {
 	conn.Close()
 	return nil
-}
-
-func (stats *Stats) countConns(delta int) {
-	if stats != nil {
-		stats.statsMutex.Lock()
-		stats.Conns += delta
-		stats.statsMutex.Unlock()
-	}
-}
-
-func (stats *Stats) countBinds(delta int) {
-	if stats != nil {
-		stats.statsMutex.Lock()
-		stats.Binds += delta
-		stats.statsMutex.Unlock()
-	}
-}
-
-func (stats *Stats) countUnbinds(delta int) {
-	if stats != nil {
-		stats.statsMutex.Lock()
-		stats.Unbinds += delta
-		stats.statsMutex.Unlock()
-	}
-}
-
-func (stats *Stats) countSearches(delta int) {
-	if stats != nil {
-		stats.statsMutex.Lock()
-		stats.Searches += delta
-		stats.statsMutex.Unlock()
-	}
 }
