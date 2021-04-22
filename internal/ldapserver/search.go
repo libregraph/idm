@@ -149,7 +149,7 @@ func filterAttributes(entry *ldap.Entry, attributes []string) (*ldap.Entry, erro
 
 	for _, attr := range entry.Attributes {
 		for _, requested := range attributes {
-			if requested == "*" || strings.ToLower(attr.Name) == strings.ToLower(requested) {
+			if requested == "*" || strings.EqualFold(attr.Name, requested) {
 				newAttributes = append(newAttributes, attr)
 			}
 		}

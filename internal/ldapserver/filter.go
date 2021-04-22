@@ -46,7 +46,7 @@ const (
 )
 
 func CompileFilter(filter string) (*ber.Packet, error) {
-	if len(filter) == 0 || filter[0] != '(' {
+	if filter == "" || filter[0] != '(' {
 		return nil, ldap.NewError(ldap.ErrorFilterCompile, errors.New("ldap: filter does not start with an '('"))
 	}
 	packet, pos, err := compileFilter(filter, 1)
@@ -260,9 +260,9 @@ func ServerApplyFilter(f *ber.Packet, entry *ldap.Entry) (bool, LDAPResultCode) 
 		attribute := f.Children[0].Value.(string)
 		value := f.Children[1].Value.(string)
 		for _, a := range entry.Attributes {
-			if strings.ToLower(a.Name) == strings.ToLower(attribute) {
+			if strings.EqualFold(a.Name, attribute) {
 				for _, v := range a.Values {
-					if strings.ToLower(v) == strings.ToLower(value) {
+					if strings.EqualFold(v, value) {
 						return true, ldap.LDAPResultSuccess
 					}
 				}
@@ -270,7 +270,7 @@ func ServerApplyFilter(f *ber.Packet, entry *ldap.Entry) (bool, LDAPResultCode) 
 		}
 	case "Present":
 		for _, a := range entry.Attributes {
-			if strings.ToLower(a.Name) == strings.ToLower(f.Data.String()) {
+			if strings.EqualFold(a.Name, f.Data.String()) {
 				return true, ldap.LDAPResultSuccess
 			}
 		}
@@ -314,9 +314,9 @@ func ServerApplyFilter(f *ber.Packet, entry *ldap.Entry) (bool, LDAPResultCode) 
 		}
 		attribute := f.Children[0].Value.(string)
 		bytes := f.Children[1].Children[0].Data.Bytes()
-		value := string(bytes[:])
+		value := string(bytes)
 		for _, a := range entry.Attributes {
-			if strings.ToLower(a.Name) == strings.ToLower(attribute) {
+			if strings.EqualFold(a.Name, attribute) {
 				for _, v := range a.Values {
 					switch f.Children[1].Children[0].Tag {
 					case FilterSubstringsInitial:
