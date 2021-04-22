@@ -11,6 +11,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -51,15 +53,42 @@ func NewLDIFHandler(logger logrus.FieldLogger, fn string, options *Options) (han
 		return nil, fmt.Errorf("base dn is empty")
 	}
 
-	logger.WithFields(logrus.Fields{
-		"fn": fn,
-	}).Debugln("loading LDIF from file")
-	l, err := parseLDIFFile(fn, options)
+	fn, err := filepath.Abs(fn)
 	if err != nil {
 		return nil, err
 	}
 
+	info, err := os.Stat(fn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open LDIF: %w", err)
+	}
+
+	logger = logger.WithField("fn", fn)
+
+	var l *ldif.LDIF
 	index := newIndexMapRegister()
+
+	if info.IsDir() {
+		logger.Debugln("loading LDIF files from folder")
+		var parseErrors []error
+		l, parseErrors, err = parseLDIFDirectory(fn, options)
+		if err != nil {
+			return nil, err
+		}
+		if len(parseErrors) > 0 {
+			for _, parseErr := range parseErrors {
+				logger.WithError(parseErr).Errorln("LDIF error")
+			}
+			return nil, fmt.Errorf("error in LDIF files")
+		}
+	} else {
+		logger.Debugln("loading LDIF from file")
+		l, err = parseLDIFFile(fn, options)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	t, err := treeFromLDIF(l, index, options)
 	if err != nil {
 		return nil, err
@@ -69,8 +98,7 @@ func NewLDIFHandler(logger logrus.FieldLogger, fn string, options *Options) (han
 		"entries_count": len(l.Entries),
 		"tree_length":   t.Len(),
 		"base_dn":       options.BaseDN,
-		"fn":            fn,
-	}).Debugln("loaded LDIF from file")
+	}).Debugln("loaded LDIF")
 
 	return &ldifHandler{
 		logger: logger,

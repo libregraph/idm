@@ -88,8 +88,8 @@ func CommandServe() *cobra.Command {
 	serveCmd.Flags().StringVar(&DefaultLDAPBaseDN, "ldap-base-dn", DefaultLDAPBaseDN, "BaseDN for LDAP requests")
 	serveCmd.Flags().BoolVar(&DefaultLDAPAllowLocalAnonymousBind, "ldap-allow-local-anonymous", DefaultLDAPAllowLocalAnonymousBind, "Allow anonymous LDAP bind for all local LDAP clients")
 
-	serveCmd.Flags().StringVar(&DefaultLDIFMain, "main-ldif", DefaultLDIFMain, "Path to an LDIF file loaded on startup")
-	serveCmd.Flags().StringVar(&DefaultLDIFConfig, "config-ldif", DefaultLDIFConfig, "Path to an LDIF file loaded on startup, this LDIF file is used for bind only")
+	serveCmd.Flags().StringVar(&DefaultLDIFMain, "main-ldif", DefaultLDIFMain, "Path to a LDIF file or folder loaded on startup")
+	serveCmd.Flags().StringVar(&DefaultLDIFConfig, "config-ldif", DefaultLDIFConfig, "Path to a LDIF file or folder loaded on startup, this LDIF data is used for bind only")
 
 	serveCmd.Flags().StringVar(&DefaultLDIFCompany, "ldif-default-company", DefaultLDIFCompany, "Sets the default for of the .Company value used in LDIF templates")
 	serveCmd.Flags().StringVar(&DefaultLDIFMailDomain, "ldif-default-mail-domain", DefaultLDIFMailDomain, "Set the default value of the .MailDomain value used in LDIF templates")
