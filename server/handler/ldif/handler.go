@@ -383,11 +383,17 @@ func (h *ldifHandler) searchEntriesPump(ctx context.Context, pumpCh chan<- *ldif
 			results = append(results, &indexed)
 		}
 		if !load {
+			cache := make(map[*ldifEntry]struct{})
 			for _, indexed := range results {
 				for _, entryRecord := range *indexed {
+					if _, cached := cache[entryRecord]; cached {
+						// Prevent duplicates.
+						continue
+					}
 					if ok := pump(entryRecord); !ok {
 						return
 					}
+					cache[entryRecord] = struct{}{}
 				}
 			}
 		}
