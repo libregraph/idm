@@ -41,7 +41,7 @@ func NewLDIFMiddleware(logger logrus.FieldLogger, fn string, options *Options) (
 
 	logger.WithFields(logrus.Fields{
 		"fn": fn,
-	}).Debugln("loading LDIF from file")
+	}).Debugln("loading LDIF")
 	l, err := parseLDIFFile(fn, options)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func NewLDIFMiddleware(logger logrus.FieldLogger, fn string, options *Options) (
 		"tree_length":   t.Len(),
 		"base_dn":       options.BaseDN,
 		"fn":            fn,
-	}).Debugln("loaded LDIF from file")
+	}).Debugln("loaded LDIF")
 
 	return &ldifMiddleware{
 		logger: logger,

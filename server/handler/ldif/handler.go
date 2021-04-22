@@ -82,7 +82,7 @@ func NewLDIFHandler(logger logrus.FieldLogger, fn string, options *Options) (han
 			return nil, fmt.Errorf("error in LDIF files")
 		}
 	} else {
-		logger.Debugln("loading LDIF from file")
+		logger.Debugln("loading LDIF")
 		l, err = parseLDIFFile(fn, options)
 		if err != nil {
 			return nil, err
@@ -98,6 +98,7 @@ func NewLDIFHandler(logger logrus.FieldLogger, fn string, options *Options) (han
 		"entries_count": len(l.Entries),
 		"tree_length":   t.Len(),
 		"base_dn":       options.BaseDN,
+		"indexes":       len(index),
 	}).Debugln("loaded LDIF")
 
 	return &ldifHandler{
