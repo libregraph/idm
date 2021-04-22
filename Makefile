@@ -137,7 +137,7 @@ dist: 3rdparty-LICENSES.md ; $(info building dist tarball ...)
 
 .PHONE: changelog
 changelog: ; $(info updating changelog ...)
-	$(CHGLOG) --output CHANGELOG.md $(ARGS)
+	$(CHGLOG) --output CHANGELOG.md $(ARGS) v0.1.0..
 
 # Rest
 
