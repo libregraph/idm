@@ -65,6 +65,7 @@ func (imr indexMapRegister) getKey(name, op string) string {
 func (imr indexMapRegister) Add(name, op string, values []string, entry *ldifEntry) bool {
 	index, ok := imr[imr.getKey(name, op)]
 	if !ok {
+		// No matching index, refuse to add.
 		return false
 	}
 	for _, value := range values {
@@ -77,8 +78,9 @@ func (imr indexMapRegister) Add(name, op string, values []string, entry *ldifEnt
 func (imr indexMapRegister) Load(name, op, value string) ([]*ldifEntry, bool) {
 	index, ok := imr[imr.getKey(name, op)]
 	if !ok {
+		// No such index.
 		return nil, false
 	}
-	values, ok := index[strings.ToLower(value)]
-	return values, ok
+	values := index[strings.ToLower(value)]
+	return values, true
 }
