@@ -28,6 +28,12 @@ var indexAttributes = map[string]string{
 
 	"sn":        "pres,eq,sub",
 	"givenName": "pres,eq,sub",
+
+	// Additional indexes for attributes usually used with AD.
+	"objectGUID":     "eq",
+	"objectSID":      "eq",
+	"otherMailbox":   "eq",
+	"samAccountName": "eq",
 }
 
 type indexMap map[string][]*ldifEntry
