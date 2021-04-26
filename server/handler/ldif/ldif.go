@@ -158,8 +158,10 @@ func treeFromLDIF(l *ldif.LDIF, index Index, options *Options) (*suffix.Tree, er
 				})
 			}
 			if index != nil {
-				// Index equality.
+				// Index equalityMatch.
 				index.Add(a.Name, "eq", a.Values, e)
+				// Index present.
+				index.Add(a.Name, "pres", []string{""}, e)
 			}
 		}
 		v, ok := t.Insert([]byte(e.DN), e)

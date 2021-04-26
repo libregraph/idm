@@ -45,12 +45,19 @@ func parseFilterMatchLeavesForIndex(f *ber.Packet, parent [][]string, level stri
 		if len(f.Children) != 2 {
 			return nil, errors.New("unsupported number of children in equality match filter")
 		}
-		switch attribute := strings.ToLower(f.Children[0].Value.(string)); attribute {
-		case "objectclass":
-			// Ignore objectClass - makes no sense to index as et would index everything.
-		default:
+		attribute := f.Children[0].Value.(string)
+		if !strings.EqualFold(attribute, "objectClass") {
 			value := f.Children[1].Value.(string)
 			parent = append(parent, []string{level, attribute, "eq", value})
+		}
+
+	case ldapserver.FilterPresent:
+		if len(f.Children) != 0 {
+			return nil, errors.New("unsupported number of children in presence match filter")
+		}
+		attribute := f.Data.String()
+		if !strings.EqualFold(attribute, "objectClass") {
+			parent = append(parent, []string{level, attribute, "pres", ""})
 		}
 
 	case ldapserver.FilterAnd:
@@ -69,7 +76,7 @@ func parseFilterMatchLeavesForIndex(f *ber.Packet, parent [][]string, level stri
 			}
 		}
 
-	case ldapserver.FilterNot, ldapserver.FilterPresent:
+	case ldapserver.FilterNot:
 		// Ignored for now.
 
 	default:
