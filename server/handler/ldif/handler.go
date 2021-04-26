@@ -376,7 +376,7 @@ func (h *ldifHandler) searchEntriesPump(ctx context.Context, pumpCh chan<- *ldif
 		load = false
 		var results []*[]*ldifEntry
 		for _, f := range indexFilter {
-			indexed, found := h.index.Load(f[0], f[1], f[2])
+			indexed, found := h.index.Load(f[0], f[1], f[2:]...)
 			if !found {
 				load = true
 				break

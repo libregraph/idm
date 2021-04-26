@@ -8,6 +8,7 @@ package ldif
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/go-asn1-ber/asn1-ber"
@@ -58,6 +59,22 @@ func parseFilterMatchLeavesForIndex(f *ber.Packet, parent [][]string, level stri
 		attribute := f.Data.String()
 		if !strings.EqualFold(attribute, "objectClass") {
 			parent = append(parent, []string{level, attribute, "pres", ""})
+		}
+
+	case ldapserver.FilterSubstrings:
+		if len(f.Children) != 2 {
+			return nil, errors.New("unsupported number of children in substrings filter")
+		}
+		attribute := f.Children[0].Value.(string)
+		if !strings.EqualFold(attribute, "objectClass") {
+			if len(f.Children[1].Children) != 1 {
+				return nil, errors.New("unsupported number of children in substrings filter")
+			}
+			value := f.Children[1].Children[0].Value.(string)
+			switch f.Children[1].Children[0].Tag {
+			case ldapserver.FilterSubstringsInitial, ldapserver.FilterSubstringsAny, ldapserver.FilterSubstringsFinal:
+				parent = append(parent, []string{level, attribute, "sub", value, strconv.FormatInt(int64(f.Children[1].Children[0].Tag), 10)})
+			}
 		}
 
 	case ldapserver.FilterAnd:

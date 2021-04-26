@@ -162,6 +162,8 @@ func treeFromLDIF(l *ldif.LDIF, index Index, options *Options) (*suffix.Tree, er
 				index.Add(a.Name, "eq", a.Values, e)
 				// Index present.
 				index.Add(a.Name, "pres", []string{""}, e)
+				// Index substrings.
+				index.Add(a.Name, "sub", a.Values, e)
 			}
 		}
 		v, ok := t.Insert([]byte(e.DN), e)

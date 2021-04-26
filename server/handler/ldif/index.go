@@ -6,7 +6,12 @@
 package ldif
 
 import (
+	"strconv"
 	"strings"
+
+	"github.com/armon/go-radix"
+	"github.com/spacewander/go-suffix-tree"
+	"stash.kopano.io/kgol/kidm/internal/ldapserver"
 )
 
 var indexAttributes = map[string]string{
@@ -36,18 +41,140 @@ var indexAttributes = map[string]string{
 	"samAccountName": "eq",
 }
 
+type Index interface {
+	Add(name, op string, values []string, entry *ldifEntry) bool
+	Load(name, op string, params ...string) ([]*ldifEntry, bool)
+}
+
 type indexMap map[string][]*ldifEntry
 
 func newIndexMap() indexMap {
 	return make(indexMap)
 }
 
-type Index interface {
-	Add(name, op string, values []string, entry *ldifEntry) bool
-	Load(name, op, value string) ([]*ldifEntry, bool)
+func (im indexMap) Add(name, op string, values []string, entry *ldifEntry) bool {
+	for _, value := range values {
+		value = strings.ToLower(value)
+		im[value] = append(im[value], entry)
+	}
+	return true
 }
 
-type indexMapRegister map[string]indexMap
+func (im indexMap) Load(name, op string, value ...string) ([]*ldifEntry, bool) {
+	values := im[strings.ToLower(value[0])]
+	return values, true
+}
+
+type indexSuffixTree struct {
+	t *suffix.Tree
+}
+
+func newIndexSuffixTree() *indexSuffixTree {
+	return &indexSuffixTree{
+		t: suffix.NewTree(),
+	}
+}
+
+func (ist indexSuffixTree) Add(name, op string, values []string, entry *ldifEntry) bool {
+	for _, value := range values {
+		sfx := []byte(value)
+		var entries []*ldifEntry
+		if v, ok := ist.t.Get(sfx); ok {
+			entries = v.([]*ldifEntry)
+		}
+		entries = append(entries, entry)
+		ist.t.Insert(sfx, entries)
+	}
+	return true
+}
+
+func (ist indexSuffixTree) Load(name, op string, value ...string) ([]*ldifEntry, bool) {
+	var entries []*ldifEntry
+	sfx := []byte(value[0])
+	ist.t.WalkSuffix(sfx, func(key []byte, value interface{}) bool {
+		entries = append(entries, value.([]*ldifEntry)...)
+		return false
+	})
+	return entries, true
+}
+
+type indexRadixTree struct {
+	t *radix.Tree
+}
+
+func newIndexRadixTree() *indexRadixTree {
+	return &indexRadixTree{
+		t: radix.New(),
+	}
+}
+
+func (irt *indexRadixTree) Add(name, op string, values []string, entry *ldifEntry) bool {
+	for _, value := range values {
+		pfx := value
+		var entries []*ldifEntry
+		if v, ok := irt.t.Get(pfx); ok {
+			entries = v.([]*ldifEntry)
+		}
+		entries = append(entries, entry)
+		irt.t.Insert(pfx, entries)
+	}
+	return true
+}
+
+func (irt *indexRadixTree) Load(name, op string, value ...string) ([]*ldifEntry, bool) {
+	var entries []*ldifEntry
+	pfx := value[0]
+	irt.t.WalkPrefix(pfx, func(key string, value interface{}) bool {
+		entries = append(entries, value.([]*ldifEntry)...)
+		return false
+	})
+	return entries, true
+}
+
+type indexSubTree struct {
+	pres indexMap
+	irt  *indexRadixTree
+	ist  *indexSuffixTree
+}
+
+func newIndexSubTree(pres indexMap) *indexSubTree {
+	return &indexSubTree{
+		pres: pres,
+		irt:  newIndexRadixTree(),
+		ist:  newIndexSuffixTree(),
+	}
+}
+
+func (idx *indexSubTree) Add(name, op string, values []string, entry *ldifEntry) bool {
+	ok0 := idx.pres.Add(name, op, []string{""}, entry)
+	ok1 := idx.irt.Add(name, op, values, entry)
+	ok2 := idx.ist.Add(name, op, values, entry)
+	return ok0 || ok1 || ok2
+}
+
+func (idx *indexSubTree) Load(name, op string, params ...string) ([]*ldifEntry, bool) {
+	if len(params) != 2 {
+		// Require one value and sub tag.
+		return nil, false
+	}
+	tag, err := strconv.ParseInt(params[1], 10, 64)
+	if err != nil {
+		panic(err)
+	}
+
+	switch tag {
+	case ldapserver.FilterSubstringsAny:
+		return idx.pres.Load(name, op, "")
+	case ldapserver.FilterSubstringsInitial:
+		return idx.irt.Load(name, op, params[0])
+	case ldapserver.FilterSubstringsFinal:
+		return idx.ist.Load(name, op, params[0])
+	default:
+		return nil, false
+	}
+}
+
+type indexMapRegister map[string]Index
 
 func newIndexMapRegister() indexMapRegister {
 	imr := make(indexMapRegister)
@@ -56,8 +183,16 @@ func newIndexMapRegister() indexMapRegister {
 		case "objectClass":
 			// Don't index objectClass, make no sense since everything has it.
 		default:
+			pres := newIndexMap()
 			for _, op := range strings.Split(ops, ",") {
-				imr[imr.getKey(name, op)] = newIndexMap()
+				switch op {
+				case "sub":
+					imr[imr.getKey(name, op)] = newIndexSubTree(pres)
+				case "pres":
+					imr[imr.getKey(name, op)] = pres
+				default:
+					imr[imr.getKey(name, op)] = newIndexMap()
+				}
 			}
 		}
 	}
@@ -74,19 +209,14 @@ func (imr indexMapRegister) Add(name, op string, values []string, entry *ldifEnt
 		// No matching index, refuse to add.
 		return false
 	}
-	for _, value := range values {
-		value = strings.ToLower(value)
-		index[value] = append(index[value], entry)
-	}
-	return true
+	return index.Add(name, op, values, entry)
 }
 
-func (imr indexMapRegister) Load(name, op, value string) ([]*ldifEntry, bool) {
+func (imr indexMapRegister) Load(name, op string, params ...string) ([]*ldifEntry, bool) {
 	index, ok := imr[imr.getKey(name, op)]
 	if !ok {
 		// No such index.
 		return nil, false
 	}
-	values := index[strings.ToLower(value)]
-	return values, true
+	return index.Load(name, op, params...)
 }

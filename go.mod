@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/alexedwards/argon2id v0.0.0-20210326052512-e2135f7c9c77
 	github.com/amoghe/go-crypt v0.0.0-20191109212615-b2ff80594b7f
+	github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310
 	github.com/coreos/go-systemd/v22 v22.3.0
 	github.com/go-asn1-ber/asn1-ber v1.5.1
 	github.com/go-ldap/ldap/v3 v3.2.4
