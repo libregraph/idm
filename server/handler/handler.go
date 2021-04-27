@@ -18,6 +18,7 @@ type Handler interface {
 	ldapserver.Closer
 
 	WithContext(context.Context) Handler
+	Reload(context.Context) error
 }
 
 // Interface for middlewares.

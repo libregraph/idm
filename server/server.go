@@ -121,6 +121,24 @@ func (s *Server) Serve(ctx context.Context) error {
 	s.LDAPServer.CloseFunc("", ldapHandler)
 
 	serversWg.Add(1)
+	go func() {
+		defer serversWg.Done()
+		for {
+			select {
+			case <-triggerCh:
+				reloadErr := ldapHandler.Reload(serveCtx)
+				if reloadErr != nil {
+					logger.Debugln("reload error: %w", reloadErr)
+				} else {
+					logger.Debugln("reload complete")
+				}
+			case <-serveCtx.Done():
+				return
+			}
+		}
+	}()
+
+	serversWg.Add(1)
 	go func(l net.Listener) {
 		defer serversWg.Done()
 		logger.WithField("listen_addr", l.Addr()).Infoln("LDAP listener started")

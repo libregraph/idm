@@ -14,13 +14,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-ldap/ldap/v3"
 	"github.com/go-ldap/ldif"
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/sirupsen/logrus"
-	"github.com/spacewander/go-suffix-tree"
 	"stash.kopano.io/kgol/rndm"
 
 	"stash.kopano.io/kgol/kidm/internal/ldapserver"
@@ -28,17 +28,16 @@ import (
 )
 
 type ldifHandler struct {
-	logger logrus.FieldLogger
+	logger  logrus.FieldLogger
+	fn      string
+	options *Options
 
 	baseDN                  string
 	allowLocalAnonymousBind bool
 
 	ctx context.Context
 
-	l *ldif.LDIF
-	t *suffix.Tree
-
-	index Index
+	current atomic.Value
 
 	activeSearchPagings cmap.ConcurrentMap
 }
@@ -57,65 +56,91 @@ func NewLDIFHandler(logger logrus.FieldLogger, fn string, options *Options) (han
 	if err != nil {
 		return nil, err
 	}
-
-	info, err := os.Stat(fn)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open LDIF: %w", err)
-	}
-
 	logger = logger.WithField("fn", fn)
 
-	var l *ldif.LDIF
-	index := newIndexMapRegister()
-
-	if info.IsDir() {
-		logger.Debugln("loading LDIF files from folder")
-		var parseErrors []error
-		l, parseErrors, err = parseLDIFDirectory(fn, options)
-		if err != nil {
-			return nil, err
-		}
-		if len(parseErrors) > 0 {
-			for _, parseErr := range parseErrors {
-				logger.WithError(parseErr).Errorln("LDIF error")
-			}
-			return nil, fmt.Errorf("error in LDIF files")
-		}
-	} else {
-		logger.Debugln("loading LDIF")
-		l, err = parseLDIFFile(fn, options)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	t, err := treeFromLDIF(l, index, options)
-	if err != nil {
-		return nil, err
-	}
-	logger.WithFields(logrus.Fields{
-		"version":       l.Version,
-		"entries_count": len(l.Entries),
-		"tree_length":   t.Len(),
-		"base_dn":       options.BaseDN,
-		"indexes":       len(index),
-	}).Debugln("loaded LDIF")
-
-	return &ldifHandler{
-		logger: logger,
+	h := &ldifHandler{
+		logger:  logger,
+		fn:      fn,
+		options: options,
 
 		baseDN:                  strings.ToLower(options.BaseDN),
 		allowLocalAnonymousBind: options.AllowLocalAnonymousBind,
 
 		ctx: context.Background(),
 
+		activeSearchPagings: cmap.New(),
+	}
+
+	err = h.open()
+	if err != nil {
+		return nil, err
+	}
+
+	return h, nil
+}
+
+func (h *ldifHandler) open() error {
+	if !strings.EqualFold(h.options.BaseDN, h.baseDN) {
+		return fmt.Errorf("mismatched BaseDN")
+	}
+
+	info, err := os.Stat(h.fn)
+	if err != nil {
+		return fmt.Errorf("failed to open LDIF: %w", err)
+	}
+
+	var l *ldif.LDIF
+	index := newIndexMapRegister()
+
+	if info.IsDir() {
+		h.logger.Debugln("loading LDIF files from folder")
+		var parseErrors []error
+		l, parseErrors, err = parseLDIFDirectory(h.fn, h.options)
+		if err != nil {
+			return err
+		}
+		if len(parseErrors) > 0 {
+			for _, parseErr := range parseErrors {
+				h.logger.WithError(parseErr).Errorln("LDIF error")
+			}
+			return fmt.Errorf("error in LDIF files")
+		}
+	} else {
+		h.logger.Debugln("loading LDIF")
+		l, err = parseLDIFFile(h.fn, h.options)
+		if err != nil {
+			return err
+		}
+	}
+
+	t, err := treeFromLDIF(l, index, h.options)
+	if err != nil {
+		return err
+	}
+
+	// Store parsed data as memory value.
+	value := &ldifMemoryValue{
 		l: l,
 		t: t,
 
 		index: index,
+	}
+	h.current.Store(value)
 
-		activeSearchPagings: cmap.New(),
-	}, nil
+	h.logger.WithFields(logrus.Fields{
+		"version":       l.Version,
+		"entries_count": len(l.Entries),
+		"tree_length":   t.Len(),
+		"base_dn":       h.options.BaseDN,
+		"indexes":       len(index),
+	}).Debugln("loaded LDIF")
+
+	return nil
+}
+
+func (h *ldifHandler) load() *ldifMemoryValue {
+	value := h.current.Load()
+	return value.(*ldifMemoryValue)
 }
 
 func (h *ldifHandler) WithContext(ctx context.Context) handler.Handler {
@@ -127,6 +152,10 @@ func (h *ldifHandler) WithContext(ctx context.Context) handler.Handler {
 	*h2 = *h
 	h2.ctx = ctx
 	return h2
+}
+
+func (h *ldifHandler) Reload(ctx context.Context) error {
+	return h.open()
 }
 
 func (h *ldifHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldapserver.LDAPResultCode, error) {
@@ -153,7 +182,9 @@ func (h *ldifHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldapserv
 		logger.Debugf("ldap bind request")
 	}
 
-	entryRecord, found := h.t.Get([]byte(bindDN))
+	current := h.load()
+
+	entryRecord, found := current.t.Get([]byte(bindDN))
 	if !found {
 		err := fmt.Errorf("user not found")
 		logger.WithError(err).Debugf("ldap bind error")
@@ -240,7 +271,8 @@ func (h *ldifHandler) Search(bindDN string, searchReq *ldap.SearchRequest, conn 
 			pumpCh = make(chan *ldifEntry)
 		}
 		if start {
-			go h.searchEntriesPump(h.ctx, pumpCh, searchReq, pagingControl, indexFilter)
+			current := h.load()
+			go h.searchEntriesPump(h.ctx, current, pumpCh, searchReq, pagingControl, indexFilter)
 		}
 
 		return pumpCh, ldap.LDAPResultSuccess
@@ -346,7 +378,7 @@ results:
 	}, nil
 }
 
-func (h *ldifHandler) searchEntriesPump(ctx context.Context, pumpCh chan<- *ldifEntry, searchReq *ldap.SearchRequest, pagingControl *ldap.ControlPaging, indexFilter [][]string) {
+func (h *ldifHandler) searchEntriesPump(ctx context.Context, current *ldifMemoryValue, pumpCh chan<- *ldifEntry, searchReq *ldap.SearchRequest, pagingControl *ldap.ControlPaging, indexFilter [][]string) {
 	defer func() {
 		if pagingControl != nil {
 			h.activeSearchPagings.Remove(string(pagingControl.Cookie))
@@ -376,7 +408,7 @@ func (h *ldifHandler) searchEntriesPump(ctx context.Context, pumpCh chan<- *ldif
 		load = false
 		var results []*[]*ldifEntry
 		for _, f := range indexFilter {
-			indexed, found := h.index.Load(f[0], f[1], f[2:]...)
+			indexed, found := current.index.Load(f[0], f[1], f[2:]...)
 			if !found {
 				load = true
 				break
@@ -403,7 +435,7 @@ func (h *ldifHandler) searchEntriesPump(ctx context.Context, pumpCh chan<- *ldif
 		// Walk through all entries (this is slow).
 		h.logger.WithField("filter", searchReq.Filter).Warnln("ldap search filter does not match any index, using slow walk")
 		searchBaseDN := strings.ToLower(searchReq.BaseDN)
-		h.t.WalkSuffix([]byte(searchBaseDN), func(key []byte, entryRecord interface{}) bool {
+		current.t.WalkSuffix([]byte(searchBaseDN), func(key []byte, entryRecord interface{}) bool {
 			if ok := pump(entryRecord.(*ldifEntry)); !ok {
 				return true
 			}

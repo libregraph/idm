@@ -9,27 +9,30 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"path/filepath"
 	"strings"
+	"sync/atomic"
 
 	"github.com/go-ldap/ldap/v3"
-	"github.com/go-ldap/ldif"
 	"github.com/sirupsen/logrus"
-	"github.com/spacewander/go-suffix-tree"
 
 	"stash.kopano.io/kgol/kidm/internal/ldapserver"
 	"stash.kopano.io/kgol/kidm/server/handler"
 )
 
 type ldifMiddleware struct {
-	logger logrus.FieldLogger
+	logger  logrus.FieldLogger
+	fn      string
+	options *Options
 
 	baseDN string
 
-	l *ldif.LDIF
-	t *suffix.Tree
+	current atomic.Value
 
 	next handler.Handler
 }
+
+var _ handler.Handler = (*ldifMiddleware)(nil) // Verify that *configHandler implements handler.Handler.
 
 func NewLDIFMiddleware(logger logrus.FieldLogger, fn string, options *Options) (handler.Middleware, error) {
 	if fn == "" {
@@ -39,36 +42,64 @@ func NewLDIFMiddleware(logger logrus.FieldLogger, fn string, options *Options) (
 		return nil, fmt.Errorf("base dn is empty")
 	}
 
-	logger.WithFields(logrus.Fields{
-		"fn": fn,
-	}).Debugln("loading LDIF")
-	l, err := parseLDIFFile(fn, options)
+	fn, err := filepath.Abs(fn)
+	if err != nil {
+		return nil, err
+	}
+	logger = logger.WithField("fn", fn)
+
+	h := &ldifMiddleware{
+		logger:  logger,
+		fn:      fn,
+		options: options,
+
+		baseDN: strings.ToLower(options.BaseDN),
+	}
+
+	err = h.open()
 	if err != nil {
 		return nil, err
 	}
 
-	t, err := treeFromLDIF(l, nil, options)
-	if err != nil {
-		return nil, err
+	return h, nil
+}
+
+func (h *ldifMiddleware) open() error {
+	if !strings.EqualFold(h.options.BaseDN, h.baseDN) {
+		return fmt.Errorf("mismatched BaseDN")
 	}
-	logger.WithFields(logrus.Fields{
+
+	h.logger.Debugln("loading LDIF")
+	l, err := parseLDIFFile(h.fn, h.options)
+	if err != nil {
+		return err
+	}
+
+	t, err := treeFromLDIF(l, nil, h.options)
+	if err != nil {
+		return err
+	}
+
+	// Store parsed data as memory value.
+	value := &ldifMemoryValue{
+		t: t,
+	}
+	h.current.Store(value)
+
+	h.logger.WithFields(logrus.Fields{
 		"version":       l.Version,
 		"entries_count": len(l.Entries),
 		"tree_length":   t.Len(),
-		"base_dn":       options.BaseDN,
-		"fn":            fn,
+		"base_dn":       h.options.BaseDN,
 	}).Debugln("loaded LDIF")
 
-	return &ldifMiddleware{
-		logger: logger,
-		baseDN: strings.ToLower(options.BaseDN),
-
-		l: l,
-		t: t,
-	}, nil
+	return nil
 }
 
-var _ handler.Handler = (*ldifMiddleware)(nil) // Verify that *configHandler implements handler.Handler.
+func (h *ldifMiddleware) load() *ldifMemoryValue {
+	value := h.current.Load()
+	return value.(*ldifMemoryValue)
+}
 
 func (h *ldifMiddleware) WithHandler(next handler.Handler) handler.Handler {
 	h.next = next
@@ -87,6 +118,15 @@ func (h *ldifMiddleware) WithContext(ctx context.Context) handler.Handler {
 	return h2
 }
 
+func (h *ldifMiddleware) Reload(ctx context.Context) error {
+	err := h.open()
+	if err != nil {
+		return err
+	}
+
+	return h.next.Reload(ctx)
+}
+
 func (h *ldifMiddleware) Bind(bindDN, bindSimplePw string, conn net.Conn) (resultCode ldapserver.LDAPResultCode, err error) {
 	bindDN = strings.ToLower(bindDN)
 
@@ -94,7 +134,9 @@ func (h *ldifMiddleware) Bind(bindDN, bindSimplePw string, conn net.Conn) (resul
 		return h.next.Bind(bindDN, bindSimplePw, conn)
 	}
 
-	entryRecord, found := h.t.Get([]byte(bindDN))
+	current := h.load()
+
+	entryRecord, found := current.t.Get([]byte(bindDN))
 	if found {
 		logger := h.logger.WithFields(logrus.Fields{
 			"bind_dn":     bindDN,
