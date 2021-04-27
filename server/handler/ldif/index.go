@@ -179,20 +179,16 @@ type indexMapRegister map[string]Index
 func newIndexMapRegister() indexMapRegister {
 	imr := make(indexMapRegister)
 	for name, ops := range indexAttributes {
-		switch name {
-		case "objectClass":
-			// Don't index objectClass, make no sense since everything has it.
-		default:
-			pres := newIndexMap()
-			for _, op := range strings.Split(ops, ",") {
-				switch op {
-				case "sub":
-					imr[imr.getKey(name, op)] = newIndexSubTree(pres)
-				case "pres":
-					imr[imr.getKey(name, op)] = pres
-				default:
-					imr[imr.getKey(name, op)] = newIndexMap()
-				}
+
+		pres := newIndexMap()
+		for _, op := range strings.Split(ops, ",") {
+			switch op {
+			case "sub":
+				imr[imr.getKey(name, op)] = newIndexSubTree(pres)
+			case "pres":
+				imr[imr.getKey(name, op)] = pres
+			default:
+				imr[imr.getKey(name, op)] = newIndexMap()
 			}
 		}
 	}

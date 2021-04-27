@@ -27,7 +27,23 @@ func parseFilterToIndexFilter(filter string) ([][]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parse filter for index failed: %w", err)
 	} else {
+		withObjectClass := true
+		if len(matches) > 1 {
+			// NOTE(longsleep): In case of more than one filter, we remove the
+			// index lookup for objectClass since pretty much everything has
+			// an object class anyways and our index lookup does not support
+			// "and" lookups. Thus this gains a lot of efficiency.
+			for _, f := range matches {
+				if !strings.EqualFold("objectClass", f[1]) {
+					withObjectClass = false
+					break
+				}
+			}
+		}
 		for _, f := range matches {
+			if !withObjectClass && strings.EqualFold("objectClass", f[1]) {
+				continue
+			}
 			result = append(result, f[1:])
 		}
 	}
@@ -47,34 +63,28 @@ func parseFilterMatchLeavesForIndex(f *ber.Packet, parent [][]string, level stri
 			return nil, errors.New("unsupported number of children in equality match filter")
 		}
 		attribute := f.Children[0].Value.(string)
-		if !strings.EqualFold(attribute, "objectClass") {
-			value := f.Children[1].Value.(string)
-			parent = append(parent, []string{level, attribute, "eq", value})
-		}
+		value := f.Children[1].Value.(string)
+		parent = append(parent, []string{level, attribute, "eq", value})
 
 	case ldapserver.FilterPresent:
 		if len(f.Children) != 0 {
 			return nil, errors.New("unsupported number of children in presence match filter")
 		}
 		attribute := f.Data.String()
-		if !strings.EqualFold(attribute, "objectClass") {
-			parent = append(parent, []string{level, attribute, "pres", ""})
-		}
+		parent = append(parent, []string{level, attribute, "pres", ""})
 
 	case ldapserver.FilterSubstrings:
 		if len(f.Children) != 2 {
 			return nil, errors.New("unsupported number of children in substrings filter")
 		}
 		attribute := f.Children[0].Value.(string)
-		if !strings.EqualFold(attribute, "objectClass") {
-			if len(f.Children[1].Children) != 1 {
-				return nil, errors.New("unsupported number of children in substrings filter")
-			}
-			value := f.Children[1].Children[0].Value.(string)
-			switch f.Children[1].Children[0].Tag {
-			case ldapserver.FilterSubstringsInitial, ldapserver.FilterSubstringsAny, ldapserver.FilterSubstringsFinal:
-				parent = append(parent, []string{level, attribute, "sub", value, strconv.FormatInt(int64(f.Children[1].Children[0].Tag), 10)})
-			}
+		if len(f.Children[1].Children) != 1 {
+			return nil, errors.New("unsupported number of children in substrings filter")
+		}
+		value := f.Children[1].Children[0].Value.(string)
+		switch f.Children[1].Children[0].Tag {
+		case ldapserver.FilterSubstringsInitial, ldapserver.FilterSubstringsAny, ldapserver.FilterSubstringsFinal:
+			parent = append(parent, []string{level, attribute, "sub", value, strconv.FormatInt(int64(f.Children[1].Children[0].Tag), 10)})
 		}
 
 	case ldapserver.FilterAnd:
