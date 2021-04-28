@@ -14,6 +14,7 @@ import (
 
 	"github.com/alexedwards/argon2id"
 	"github.com/amoghe/go-crypt"
+	"github.com/trustelem/zxcvbn"
 )
 
 var Argon2DefaultParams = argon2id.DefaultParams
@@ -109,4 +110,9 @@ func HashPassword(password string, algorithm string) (string, error) {
 	}
 
 	return result, nil
+}
+
+func EstimatePasswordStrength(password string, userInputs []string) int {
+	result := zxcvbn.PasswordStrength(password, userInputs)
+	return result.Score
 }

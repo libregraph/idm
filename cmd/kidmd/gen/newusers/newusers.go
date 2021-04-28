@@ -25,6 +25,8 @@ var (
 	DefaultArgon2Memory     = ldif.Argon2DefaultParams.Memory
 	DefaultArgon2Iterations = ldif.Argon2DefaultParams.Iterations
 	DefaultArgon2Lanes      = ldif.Argon2DefaultParams.Parallelism
+
+	DefaultMinPasswordStrength = 3
 )
 
 func CommandNewusers() *cobra.Command {
@@ -46,6 +48,7 @@ func CommandNewusers() *cobra.Command {
 	newusersCmd.Flags().Uint32Var(&DefaultArgon2Memory, "argon2-memory", DefaultArgon2Memory, "Amount of memory used for ARGON2 password hashing in Kibibytes")
 	newusersCmd.Flags().Uint32Var(&DefaultArgon2Iterations, "argon2-iterations", DefaultArgon2Iterations, "Number of iterations over memory used for ARGON2 password hashing")
 	newusersCmd.Flags().Uint8Var(&DefaultArgon2Lanes, "argon2-lanes", DefaultArgon2Lanes, "Number of lanes used for ARGON2 password hashing")
+	newusersCmd.Flags().IntVar(&DefaultMinPasswordStrength, "min-password-strength", DefaultMinPasswordStrength, "Mimimal required password strength (0=too guessable, 1=very guessable, 2=somewhat guessable, 4=safely unguessable, 5=very unguessable)")
 
 	return newusersCmd
 }
@@ -112,7 +115,7 @@ func parsePasswdFile(r io.Reader) ([]*entry, error) {
 		if len(parts) < 5 {
 			return nil, fmt.Errorf("not enough fields in line %d", count)
 		}
-		results = append(results, &entry{
+		e := &entry{
 			line: count,
 			raw:  line,
 
@@ -123,7 +126,16 @@ func parsePasswdFile(r io.Reader) ([]*entry, error) {
 			Gecos:  parts[4],
 			Dir:    parts[5],
 			Shell:  parts[6],
-		})
+		}
+		if e.Passwd != "" {
+			score := ldif.EstimatePasswordStrength(e.Passwd, nil)
+			if score < DefaultMinPasswordStrength {
+				return nil, fmt.Errorf("secret not secure in line %d: score:%d", e.line, score)
+			}
+		}
+
+		results = append(results, e)
+
 	}
 
 	return results, nil

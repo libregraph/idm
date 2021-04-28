@@ -26,6 +26,8 @@ var (
 	DefaultArgon2Lanes      = ldif.Argon2DefaultParams.Parallelism
 
 	OmitTrailingNewline = false
+
+	DefaultMinPasswordStrength = 3
 )
 
 func CommandPasswd() *cobra.Command {
@@ -52,6 +54,7 @@ func CommandPasswd() *cobra.Command {
 	passwdCmd.Flags().StringP("secret-file", "T", "", "File containing the secret to be hashed")
 
 	passwdCmd.Flags().BoolVarP(&OmitTrailingNewline, "omit-newline", "n", false, "Omit the trailing newline; useful to pipe the credentials into a command")
+	passwdCmd.Flags().IntVar(&DefaultMinPasswordStrength, "min-password-strength", DefaultMinPasswordStrength, "Mimimal required password strength (0=too guessable, 1=very guessable, 2=somewhat guessable, 4=safely unguessable, 5=very unguessable)")
 
 	return passwdCmd
 }
@@ -105,6 +108,25 @@ func passwd(cmd *cobra.Command, args []string) error {
 	}
 	if strings.TrimSpace(secret) == "" {
 		return fmt.Errorf("secret is empty")
+	}
+
+	score := ldif.EstimatePasswordStrength(secret, nil)
+	if score < DefaultMinPasswordStrength {
+		switch score {
+		case 0:
+			err = fmt.Errorf("too guessable")
+		case 1:
+			err = fmt.Errorf("very guessable")
+		case 2:
+			err = fmt.Errorf("somewhat guessable")
+		case 3:
+			err = fmt.Errorf("safely unguessable")
+		case 4:
+			err = fmt.Errorf("very unguessable")
+		default:
+			err = fmt.Errorf("unknown score level")
+		}
+		return fmt.Errorf("secret not secure, %w (score %d)", err, score)
 	}
 
 	hash, err := ldif.HashPassword(secret, DefaultPasswordScheme)
