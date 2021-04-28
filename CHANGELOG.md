@@ -4,6 +4,26 @@
 
 
 
+## v0.2.0 (2021-04-29)
+
+- Move password hash functionality to internal module
+- Add password strength checks
+- Add gen passwd subcommand
+- Consolidate password hashing functions
+- Ignore commented lines when processing templates
+- Support relative paths in templates
+- Include demo LDIF generator script
+- Only load files in templates which are in a base folder
+- Unify config and commandline options
+- Add binscript, systemd service and config
+- Add reload support via SIGHUP
+- Enable index and index lookup for objectClass only filters
+- Add sub index support
+- Add present index support
+- Add proper license headers and origin reference
+- Add some AD attributres for equality indexing
+
+
 ## v0.1.0 (2021-04-22)
 
 - Improve string comparison performance
