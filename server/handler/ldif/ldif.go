@@ -6,6 +6,7 @@
 package ldif
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -93,15 +94,22 @@ func parseLDIFDirectory(pn string, options *Options) (*ldif.LDIF, []error, error
 // parseLDIFTemplate exectues the provided text template and then parses the
 // result as LDIF.
 func parseLDIFTemplate(r io.Reader, options *Options, m map[string]interface{}) (io.Reader, error) {
-	text, err := io.ReadAll(r)
-	if err != nil {
-		return nil, err
+	scanner := bufio.NewScanner(r)
+	scanner.Split(bufio.ScanLines)
+	var text []string
+	for scanner.Scan() {
+		t := scanner.Text()
+		if t != "" && t[0] == '#' {
+			// Ignore commented lines.
+			continue
+		}
+		text = append(text, scanner.Text())
 	}
 
 	if m == nil {
 		m = make(map[string]interface{})
 	}
-	tpl, err := template.New("tpl").Funcs(TemplateFuncs(m, options)).Parse(string(text))
+	tpl, err := template.New("tpl").Funcs(TemplateFuncs(m, options)).Parse(strings.Join(text, "\n"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse LDIF template: %w", err)
 	}
