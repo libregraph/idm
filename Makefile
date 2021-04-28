@@ -138,6 +138,7 @@ dist: 3rdparty-LICENSES.md ; $(info building dist tarball ...)
 	cp -avf ../scripts/kopano-kidmd.service "${PACKAGE_NAME}-${VERSION}/scripts" && \
 	cp -avf ../scripts/kidmd.cfg "${PACKAGE_NAME}-${VERSION}/scripts" && \
 	cp -avf ../scripts/*.ldif.in "${PACKAGE_NAME}-${VERSION}/scripts" && \
+	cp -avf ../scripts/generate-demo-users-ldif.sh "${PACKAGE_NAME}-${VERSION}/scripts" && \
 	tar --owner=0 --group=0 -czvf ${PACKAGE_NAME}-${VERSION}.tar.gz "${PACKAGE_NAME}-${VERSION}" && \
 	cd ..
 
