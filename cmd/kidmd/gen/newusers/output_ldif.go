@@ -99,7 +99,7 @@ func outputLDIF(r io.Reader) error {
 		m["detail"] = detail
 
 		if entry.Passwd != "" {
-			hash, hashErr := ldif.HashPassword(entry.Passwd, DefaultPasswordHash)
+			hash, hashErr := ldif.HashPassword(entry.Passwd, DefaultPasswordScheme)
 			if hashErr != nil {
 				return hashErr
 			}

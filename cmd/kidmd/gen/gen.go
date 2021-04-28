@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"stash.kopano.io/kgol/kidm/cmd/kidmd/gen/newusers"
+	"stash.kopano.io/kgol/kidm/cmd/kidmd/gen/passwd"
 )
 
 func CommandGen() *cobra.Command {
@@ -18,6 +19,7 @@ func CommandGen() *cobra.Command {
 	}
 
 	genCmd.AddCommand(newusers.CommandNewusers())
+	genCmd.AddCommand(passwd.CommandPasswd())
 
 	return genCmd
 }

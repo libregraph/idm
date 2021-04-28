@@ -19,8 +19,8 @@ import (
 )
 
 var (
-	DefaultFormat       = "ldif"
-	DefaultPasswordHash = "ARGON2"
+	DefaultFormat         = "ldif"
+	DefaultPasswordScheme = "{ARGON2}"
 
 	DefaultArgon2Memory     = ldif.Argon2DefaultParams.Memory
 	DefaultArgon2Iterations = ldif.Argon2DefaultParams.Iterations
@@ -42,7 +42,7 @@ func CommandNewusers() *cobra.Command {
 	}
 
 	newusersCmd.Flags().StringVar(&DefaultFormat, "format", DefaultFormat, "Output format")
-	newusersCmd.Flags().StringVar(&DefaultPasswordHash, "password-hash", DefaultPasswordHash, "Password hash algorithm, supports: ARGON2")
+	newusersCmd.Flags().StringVar(&DefaultPasswordScheme, "password-scheme", DefaultPasswordScheme, "Password hash algorithm, supports: {ARGON2}, {CLEARTEXT}")
 	newusersCmd.Flags().Uint32Var(&DefaultArgon2Memory, "argon2-memory", DefaultArgon2Memory, "Amount of memory used for ARGON2 password hashing in Kibibytes")
 	newusersCmd.Flags().Uint32Var(&DefaultArgon2Iterations, "argon2-iterations", DefaultArgon2Iterations, "Number of iterations over memory used for ARGON2 password hashing")
 	newusersCmd.Flags().Uint8Var(&DefaultArgon2Lanes, "argon2-lanes", DefaultArgon2Lanes, "Number of lanes used for ARGON2 password hashing")

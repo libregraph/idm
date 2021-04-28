@@ -21,9 +21,9 @@ var Argon2DefaultParams = argon2id.DefaultParams
 func ValidatePassword(password string, hash string) (bool, error) {
 	algorithm := ""
 	if hash[0] == '{' {
-		algorithmEnd := strings.Index(hash[1:], "}")
+		algorithmEnd := strings.Index(hash[0:], "}")
 		if algorithmEnd >= 1 {
-			algorithm = hash[1 : algorithmEnd+1]
+			algorithm = hash[0 : algorithmEnd+1]
 			hash = hash[algorithmEnd+2:]
 		}
 	}
@@ -36,7 +36,7 @@ func ValidatePassword(password string, hash string) (bool, error) {
 		// No password scheme, direct comparison.
 		passwordBytes = []byte(password)
 
-	case "ARGON2":
+	case "{ARGON2}":
 		// Follows the format used by the Argon2 reference C implementation and looks like this:
 		// $argon2id$v=19$m=65536,t=3,p=2$c29tZXNhbHQ$RdescudvJCsgt3ub+b+dWRWJTmaaJObG
 		match, err := argon2id.ComparePasswordAndHash(password, hash)
@@ -48,7 +48,7 @@ func ValidatePassword(password string, hash string) (bool, error) {
 		}
 		return true, nil
 
-	case "CRYPT":
+	case "{CRYPT}":
 		// By default the salt is a two character string.
 		salt := hash[:2]
 		if hash[0] == '$' {
@@ -65,7 +65,7 @@ func ValidatePassword(password string, hash string) (bool, error) {
 		}
 		passwordBytes = []byte(encrypted)
 
-	case "SSHA":
+	case "{SSHA}":
 		// BASE64(SHA-1(clear_text + salt) + salt)
 		// The salt is 4 bytes long.
 		decodedBytes, err := base64.StdEncoding.DecodeString(hash)
@@ -94,7 +94,10 @@ func HashPassword(password string, algorithm string) (string, error) {
 	var result string
 
 	switch algorithm {
-	case "ARGON2":
+	case "", "{CLEARTEXT}":
+		result = password
+
+	case "{ARGON2}":
 		hash, hashErr := argon2id.CreateHash(password, Argon2DefaultParams)
 		if hashErr != nil {
 			return "", fmt.Errorf("password hash error: %w", hashErr)
