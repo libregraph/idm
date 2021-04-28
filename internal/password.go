@@ -3,7 +3,7 @@
  * Copyright 2021 Kopano and its licensors
  */
 
-package ldif
+package internal
 
 import (
 	"crypto/sha1" //nolint,gosec

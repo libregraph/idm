@@ -13,6 +13,7 @@ import (
 	"strings"
 	"text/template"
 
+	"stash.kopano.io/kgol/kidm/internal"
 	"stash.kopano.io/kgol/kidm/server/handler/ldif"
 )
 
@@ -99,7 +100,7 @@ func outputLDIF(r io.Reader) error {
 		m["detail"] = detail
 
 		if entry.Passwd != "" {
-			hash, hashErr := ldif.HashPassword(entry.Passwd, DefaultPasswordScheme)
+			hash, hashErr := internal.HashPassword(entry.Passwd, DefaultPasswordScheme)
 			if hashErr != nil {
 				return hashErr
 			}

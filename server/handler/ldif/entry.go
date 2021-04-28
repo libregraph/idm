@@ -9,6 +9,8 @@ import (
 	"fmt"
 
 	"github.com/go-ldap/ldap/v3"
+
+	"stash.kopano.io/kgol/kidm/internal"
 )
 
 type ldifEntry struct {
@@ -18,7 +20,7 @@ type ldifEntry struct {
 }
 
 func (entry *ldifEntry) validatePassword(bindSimplePw string) error {
-	match, err := ValidatePassword(bindSimplePw, entry.UserPassword.Values[0])
+	match, err := internal.ValidatePassword(bindSimplePw, entry.UserPassword.Values[0])
 	if err != nil {
 		return err
 	}

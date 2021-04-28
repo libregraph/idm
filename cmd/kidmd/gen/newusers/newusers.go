@@ -15,16 +15,16 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"stash.kopano.io/kgol/kidm/server/handler/ldif"
+	"stash.kopano.io/kgol/kidm/internal"
 )
 
 var (
 	DefaultFormat         = "ldif"
 	DefaultPasswordScheme = "{ARGON2}"
 
-	DefaultArgon2Memory     = ldif.Argon2DefaultParams.Memory
-	DefaultArgon2Iterations = ldif.Argon2DefaultParams.Iterations
-	DefaultArgon2Lanes      = ldif.Argon2DefaultParams.Parallelism
+	DefaultArgon2Memory     = internal.Argon2DefaultParams.Memory
+	DefaultArgon2Iterations = internal.Argon2DefaultParams.Iterations
+	DefaultArgon2Lanes      = internal.Argon2DefaultParams.Parallelism
 
 	DefaultMinPasswordStrength = 3
 )
@@ -70,9 +70,9 @@ func newusers(cmd *cobra.Command, args []string) error {
 		r = os.Stdin
 	}
 
-	ldif.Argon2DefaultParams.Memory = DefaultArgon2Memory
-	ldif.Argon2DefaultParams.Iterations = DefaultArgon2Iterations
-	ldif.Argon2DefaultParams.Parallelism = DefaultArgon2Lanes
+	internal.Argon2DefaultParams.Memory = DefaultArgon2Memory
+	internal.Argon2DefaultParams.Iterations = DefaultArgon2Iterations
+	internal.Argon2DefaultParams.Parallelism = DefaultArgon2Lanes
 
 	if DefaultFormat == "ldif" {
 		return outputLDIF(r)
@@ -128,9 +128,9 @@ func parsePasswdFile(r io.Reader) ([]*entry, error) {
 			Shell:  parts[6],
 		}
 		if e.Passwd != "" {
-			score := ldif.EstimatePasswordStrength(e.Passwd, nil)
+			score := internal.EstimatePasswordStrength(e.Passwd, nil)
 			if score < DefaultMinPasswordStrength {
-				return nil, fmt.Errorf("secret not secure in line %d: score:%d", e.line, score)
+				return nil, fmt.Errorf("secret not secure in line %d (score %d)", e.line, score)
 			}
 		}
 
