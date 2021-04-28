@@ -76,12 +76,16 @@ func TemplateFuncs(m map[string]interface{}, options *Options) template.FuncMap 
 			return base64.StdEncoding.EncodeToString([]byte(s))
 		},
 		"formatAsFileBase64": func(fn string) (string, error) {
+			if basePath == "" {
+				return "", fmt.Errorf("LDIF template fromFile failed, no base path")
+			}
+			fn = filepath.Clean(fn)
+			if !filepath.IsAbs(fn) {
+				fn = filepath.Join(basePath, fn)
+			}
 			fn, err := filepath.Abs(fn)
 			if err != nil {
 				return "", err
-			}
-			if basePath == "" {
-				return "", fmt.Errorf("LDIF template fromFile failed, no base path")
 			}
 			// NOTE(longsleep): Poor man base path check, should work well enough on Linux.
 			// See https://github.com/golang/go/issues/18358 for details.
