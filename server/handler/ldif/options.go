@@ -15,4 +15,6 @@ type Options struct {
 	TemplateExtraVars      map[string]interface{}
 	TemplateEngineDisabled bool
 	TemplateDebug          bool
+
+	templateBasePath string
 }

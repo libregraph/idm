@@ -94,6 +94,7 @@ func (h *ldifHandler) open() error {
 
 	if info.IsDir() {
 		h.logger.Debugln("loading LDIF files from folder")
+		h.options.templateBasePath = h.fn
 		var parseErrors []error
 		l, parseErrors, err = parseLDIFDirectory(h.fn, h.options)
 		if err != nil {
@@ -107,6 +108,7 @@ func (h *ldifHandler) open() error {
 		}
 	} else {
 		h.logger.Debugln("loading LDIF")
+		h.options.templateBasePath = filepath.Dir(h.fn)
 		l, err = parseLDIFFile(h.fn, h.options)
 		if err != nil {
 			return err

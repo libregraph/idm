@@ -12,8 +12,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 )
+
+const formatAsFileSizeLimit int64 = 1024 * 1024
 
 func TemplateFuncs(m map[string]interface{}, options *Options) template.FuncMap {
 	defaults := map[string]interface{}{
@@ -46,6 +49,8 @@ func TemplateFuncs(m map[string]interface{}, options *Options) template.FuncMap 
 		autoIncrement = v.(uint64)
 	}
 
+	basePath := options.templateBasePath
+
 	return template.FuncMap{
 		"WithCompany": func(value string) string {
 			m["Company"] = value
@@ -75,23 +80,31 @@ func TemplateFuncs(m map[string]interface{}, options *Options) template.FuncMap 
 			if err != nil {
 				return "", err
 			}
+			if basePath == "" {
+				return "", fmt.Errorf("LDIF template fromFile failed, no base path")
+			}
+			// NOTE(longsleep): Poor man base path check, should work well enough on Linux.
+			// See https://github.com/golang/go/issues/18358 for details.
+			if !strings.HasPrefix(fn, strings.TrimRight(basePath, "/")+"/") {
+				return "", fmt.Errorf("LDIF template formatAsFile %s outside of %s is not allowed", fn, basePath)
+			}
 
 			f, err := os.Open(fn)
 			if err != nil {
-				return "", fmt.Errorf("LDIF template fromFile open failed with error: %w", err)
+				return "", fmt.Errorf("LDIF template formatAsFile open failed with error: %w", err)
 			}
 			defer f.Close()
 
-			reader := io.LimitReader(f, 1024*1024+1)
+			reader := io.LimitReader(f, formatAsFileSizeLimit+1)
 
 			var buf bytes.Buffer
 			encoder := base64.NewEncoder(base64.StdEncoding, &buf)
 			n, err := io.Copy(encoder, reader)
 			if err != nil {
-				return "", fmt.Errorf("LDIF template fromFile error: %w", err)
+				return "", fmt.Errorf("LDIF template formatAsFile error: %w", err)
 			}
-			if n > 1024*1024 {
-				return "", fmt.Errorf("LDIF template fromFile size limit exceeded: %s", fn)
+			if n > formatAsFileSizeLimit {
+				return "", fmt.Errorf("LDIF template formatAsFile size limit exceeded: %s", fn)
 			}
 
 			return buf.String(), nil
