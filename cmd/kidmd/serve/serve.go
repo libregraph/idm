@@ -30,7 +30,7 @@ var (
 
 	DefaultLDAPListenAddr = "127.0.0.1:10389"
 
-	DefaultLDAPBaseDN                  = os.Getenv("KIDMD_DEFAULT_LDAP_BASEDN")
+	DefaultLDAPBaseDN                  = "dc=kopano,dc=local"
 	DefaultLDAPAllowLocalAnonymousBind = false
 
 	DefaultLDIFMain   = os.Getenv("KIDMD_DEFAULT_LDIF_MAIN")
@@ -47,6 +47,11 @@ var (
 )
 
 func init() {
+	envDefaultLDAPBaseDN := os.Getenv("KIDMD_DEFAULT_LDAP_BASEDN")
+	if envDefaultLDAPBaseDN != "" {
+		DefaultLDAPBaseDN = envDefaultLDAPBaseDN
+	}
+
 	envDefaultLDAPListenAddr := os.Getenv("KIDMD_DEFAULT_LDAP_LISTEN")
 	if envDefaultLDAPListenAddr != "" {
 		DefaultLDAPListenAddr = envDefaultLDAPListenAddr
