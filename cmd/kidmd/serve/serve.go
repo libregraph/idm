@@ -33,8 +33,8 @@ var (
 	DefaultLDAPBaseDN                  = "dc=kopano,dc=local"
 	DefaultLDAPAllowLocalAnonymousBind = false
 
-	DefaultLDIFMain   = os.Getenv("KIDMD_DEFAULT_LDIF_MAIN")
-	DefaultLDIFConfig = os.Getenv("KIDMD_DEFAULT_LDIF_CONFIG")
+	DefaultLDIFMain   = os.Getenv("KIDMD_DEFAULT_LDIF_MAIN_PATH")
+	DefaultLDIFConfig = os.Getenv("KIDMD_DEFAULT_LDIF_CONFIG_PATH")
 
 	DefaultLDIFCompany    = "Default"
 	DefaultLDIFMailDomain = "kopano.local"
@@ -57,12 +57,12 @@ func init() {
 		DefaultLDAPListenAddr = envDefaultLDAPListenAddr
 	}
 
-	envDefaultLDIFCompany := os.Getenv("KIDMD_DEFAULT_LDIF_COMPANY")
+	envDefaultLDIFCompany := os.Getenv("KIDMD_DEFAULT_LDIF_TEMPLATE_COMPANY")
 	if envDefaultLDIFCompany != "" {
 		DefaultLDIFCompany = envDefaultLDIFCompany
 	}
 
-	envDefaultLDIFMailDomain := os.Getenv("KIDMD_DEFAULT_LDIF_MAIL_DOMAIN")
+	envDefaultLDIFMailDomain := os.Getenv("KIDMD_DEFAULT_LDIF_TEMPLATE_MAIL_DOMAIN")
 	if envDefaultLDIFMailDomain != "" {
 		DefaultLDIFMailDomain = envDefaultLDIFMailDomain
 	}
@@ -93,11 +93,11 @@ func CommandServe() *cobra.Command {
 	serveCmd.Flags().StringVar(&DefaultLDAPBaseDN, "ldap-base-dn", DefaultLDAPBaseDN, "BaseDN for LDAP requests")
 	serveCmd.Flags().BoolVar(&DefaultLDAPAllowLocalAnonymousBind, "ldap-allow-local-anonymous", DefaultLDAPAllowLocalAnonymousBind, "Allow anonymous LDAP bind for all local LDAP clients")
 
-	serveCmd.Flags().StringVar(&DefaultLDIFMain, "main-ldif", DefaultLDIFMain, "Path to a LDIF file or folder loaded on startup")
-	serveCmd.Flags().StringVar(&DefaultLDIFConfig, "config-ldif", DefaultLDIFConfig, "Path to a LDIF file or folder loaded on startup, this LDIF data is used for bind only")
+	serveCmd.Flags().StringVar(&DefaultLDIFMain, "ldif-main", DefaultLDIFMain, "Path to a LDIF file or .d folder containing LDIF files")
+	serveCmd.Flags().StringVar(&DefaultLDIFConfig, "ldif-config", DefaultLDIFConfig, "Path to a LDIF file for entries used only for bind")
 
-	serveCmd.Flags().StringVar(&DefaultLDIFCompany, "ldif-default-company", DefaultLDIFCompany, "Sets the default for of the .Company value used in LDIF templates")
-	serveCmd.Flags().StringVar(&DefaultLDIFMailDomain, "ldif-default-mail-domain", DefaultLDIFMailDomain, "Set the default value of the .MailDomain value used in LDIF templates")
+	serveCmd.Flags().StringVar(&DefaultLDIFCompany, "ldif-template-default-company", DefaultLDIFCompany, "Sets the default for of the .Company value used in LDIF templates")
+	serveCmd.Flags().StringVar(&DefaultLDIFMailDomain, "ldif-template-default-mail-domain", DefaultLDIFMailDomain, "Set the default value of the .MailDomain value used in LDIF templates")
 
 	serveCmd.Flags().BoolVar(&DefaultWithPprof, "with-pprof", DefaultWithPprof, "With pprof enabled")
 	serveCmd.Flags().StringVar(&DefaultPprofListenAddr, "pprof-listen", DefaultPprofListenAddr, "TCP listen address for pprof")

@@ -1,0 +1,9 @@
+## Example service user for LDAP access, uncomment all lines to enable and make
+## sure to change the password.
+##
+#dn: cn=readonly,{{.BaseDN}}
+#cn: readonly
+#description: LDAP read only service user
+#objectClass: simpleSecurityObject
+#objectClass: organizationalRole
+#userPassword: readonly

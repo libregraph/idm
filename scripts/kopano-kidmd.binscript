@@ -13,26 +13,26 @@ set -e
 EXE=/usr/libexec/kopano/kidmd
 DEFAULT_LDAP_BASEDN=dc=kopano,dc=local
 DEFAULT_LDAP_LISTEN=127.0.0.1:10389
-DEFAULT_MAIN_LDIF_PATH=/etc/kopano/kidm/main.ldif.d
-DEFAULT_CONFIG_LDIF_PATH=/etc/kopano/kidm/config.ldif.d
+DEFAULT_LDIF_MAIN_PATH=/etc/kopano/kidm/ldif/main.d
+DEFAULT_LDIF_CONFIG_PATH=/etc/kopano/kidm/ldif/config.ldif
 
 set_defaults() {
 	# Inject defaults into environment, to announce possible overrides.
 
-	if [ -n "$DEFAULT_PROVIDER_URL" ]; then
-		export KIDMD_DEFAULT_LDAP_BASEDN="$DEFAULT_PROVIDER_URL"
+	if [ -n "$DEFAULT_LDAP_BASEDN" ]; then
+		export KIDMD_DEFAULT_LDAP_BASEDN="$DEFAULT_LDAP_BASEDN"
 	fi
 
 	if [ -n "$DEFAULT_LDAP_LISTEN" ]; then
 		export KIDMD_DEFAULT_LDAP_LISTEN="$DEFAULT_LDAP_LISTEN"
 	fi
 
-	if [ -n "$DEFAULT_MAIN_LDIF_PATH" ]; then
-		export KIDMD_DEFAULT_MAIN_LDIF="$DEFAULT_MAIN_LDIF_PATH"
+	if [ -n "$DEFAULT_LDIF_MAIN_PATH" ]; then
+		export KIDMD_DEFAULT_LDIF_MAIN_PATH="$DEFAULT_LDIF_MAIN_PATH"
 	fi
 
-	if [ -n "$DEFAULT_CONFIG_LDIF_PATH" ]; then
-		export KIDMD_DEFAULT_CONFIG_LDIF="$DEFAULT_CONFIG_LDIF"
+	if [ -n "$DEFAULT_LDIF_CONFIG_PATH" ]; then
+		export KIDMD_DEFAULT_LDIF_CONFIG_PATH="$DEFAULT_LDIF_CONFIG_PATH"
 	fi
 }
 set_defaults
@@ -50,32 +50,32 @@ case "${1}" in
 			set -- "$@" --log-level="$log_level"
 		fi
 
-		if [ -n "$ldap_base_dn"]; then
+		if [ -n "$ldap_base_dn" ]; then
 			set -- "$@" --ldap-base-dn="$ldap_base_dn"
 		fi
 
-		if [ -n "$ldap_listen"]; then
+		if [ -n "$ldap_listen" ]; then
 			set -- "$@" --ldap-listen="$ldap_listen"
-		fi
-
-		if [ -n "$ldap_default_mail_domain"]; then
-			set -- "$@" --ldap-default-mail-domain="$ldap_default_mail_domain"
-		fi
-
-		if [ -n "$ldap_default_company"]; then
-			set -- "$@" --ldap-default-company="$ldap_default_company"
 		fi
 
 	 	if [ "$ldap_allow_local_anonymous" = "yes" ]; then
 			set -- "$@" --ldap-allow-local-anonymous
 		fi
 
-		if [ -n "$main_ldif" ]; then
-			set -- "$@" --mail-ldif="$main_ldif"
+		if [ -n "$ldif_main" ]; then
+			set -- "$@" --ldif-main="$ldif_main"
 		fi
 
-		if [ -n "$config_ldif" ]; then
-			set -- "$@" --config-ldif="$config_ldif"
+		if [ -n "$ldif_config" ]; then
+			set -- "$@" --ldif-config="$ldif_config"
+		fi
+
+		if [ -n "$ldif_template_default_mail_domain" ]; then
+			set -- "$@" --ldif-template-default-mail-domain="$ldif_template_default_mail_domain"
+		fi
+
+		if [ -n "$ldif_template_default_company" ]; then
+			set -- "$@" --ldif-template-default-company="$ldif_template_default_company"
 		fi
 
 		;;
