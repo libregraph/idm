@@ -13,8 +13,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/alexedwards/argon2id"
-
 	"stash.kopano.io/kgol/kidm/server/handler/ldif"
 )
 
@@ -46,8 +44,6 @@ sn: <<.>>
 kopanoAccount: 1
 kopanoAdmin: 0
 `
-
-var Argon2DefaultParams = argon2id.DefaultParams
 
 func outputLDIF(r io.Reader) error {
 	entries, err := parsePasswdFile(r)
@@ -103,20 +99,13 @@ func outputLDIF(r io.Reader) error {
 		m["detail"] = detail
 
 		if entry.Passwd != "" {
-			passwd := entry.Passwd
-			switch DefaultPasswordHash {
-			case "ARGON2":
-				hash, hashErr := argon2id.CreateHash(passwd, Argon2DefaultParams)
-				if hashErr != nil {
-					return fmt.Errorf("password hash error: %w", hashErr)
-				}
-				passwd = "{ARGON2}" + hash
-			default:
-				return fmt.Errorf("password hash alg not supported: %s", DefaultPasswordHash)
+			hash, hashErr := ldif.HashPassword(entry.Passwd, DefaultPasswordHash)
+			if hashErr != nil {
+				return hashErr
 			}
-
-			detail["userPassword"] = passwd
+			detail["userPassword"] = hash
 		} else {
+			// Use entry name as password, if none is set.
 			detail["userPassword"] = entry.Name
 		}
 		if entry.Gecos != "" {

@@ -14,17 +14,24 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
+	"stash.kopano.io/kgol/kidm/server/handler/ldif"
 )
 
 var (
 	DefaultFormat       = "ldif"
 	DefaultPasswordHash = "ARGON2"
+
+	DefaultArgon2Memory     = ldif.Argon2DefaultParams.Memory
+	DefaultArgon2Iterations = ldif.Argon2DefaultParams.Iterations
+	DefaultArgon2Lanes      = ldif.Argon2DefaultParams.Parallelism
 )
 
 func CommandNewusers() *cobra.Command {
 	newusersCmd := &cobra.Command{
-		Use:   "newusers [...args]",
+		Use:   "newusers [<file>|-]",
 		Short: "Create LDIF file for new users in batch",
+		Long:  "Create LDIF file for new users in batch from text input. Input is read either from <file> or from stdin if '-' is used as argument.",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := newusers(cmd, args); err != nil {
@@ -35,6 +42,10 @@ func CommandNewusers() *cobra.Command {
 	}
 
 	newusersCmd.Flags().StringVar(&DefaultFormat, "format", DefaultFormat, "Output format")
+	newusersCmd.Flags().StringVar(&DefaultPasswordHash, "password-hash", DefaultPasswordHash, "Password hash algorithm, supports: ARGON2")
+	newusersCmd.Flags().Uint32Var(&DefaultArgon2Memory, "argon2-memory", DefaultArgon2Memory, "Amount of memory used for ARGON2 password hashing in Kibibytes")
+	newusersCmd.Flags().Uint32Var(&DefaultArgon2Iterations, "argon2-iterations", DefaultArgon2Iterations, "Number of iterations over memory used for ARGON2 password hashing")
+	newusersCmd.Flags().Uint8Var(&DefaultArgon2Lanes, "argon2-lanes", DefaultArgon2Lanes, "Number of lanes used for ARGON2 password hashing")
 
 	return newusersCmd
 }
@@ -55,6 +66,10 @@ func newusers(cmd *cobra.Command, args []string) error {
 	} else {
 		r = os.Stdin
 	}
+
+	ldif.Argon2DefaultParams.Memory = DefaultArgon2Memory
+	ldif.Argon2DefaultParams.Iterations = DefaultArgon2Iterations
+	ldif.Argon2DefaultParams.Parallelism = DefaultArgon2Lanes
 
 	if DefaultFormat == "ldif" {
 		return outputLDIF(r)
