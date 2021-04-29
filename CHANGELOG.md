@@ -4,6 +4,11 @@
 
 
 
+## v0.2.1 (2021-04-29)
+
+- Fix refactoring error for hash based password checks
+
+
 ## v0.2.0 (2021-04-29)
 
 - Move password hash functionality to internal module
