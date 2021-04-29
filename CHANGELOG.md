@@ -4,6 +4,11 @@
 
 
 
+## v0.2.2 (2021-04-29)
+
+- Add setup step for systemd based startup
+
+
 ## v0.2.1 (2021-04-29)
 
 - Fix refactoring error for hash based password checks
