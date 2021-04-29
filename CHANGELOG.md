@@ -4,6 +4,11 @@
 
 
 
+## v0.2.4 (2021-04-29)
+
+- Fix missing variable in default LDIF main config template
+
+
 ## v0.2.3 (2021-04-29)
 
 - Ensure to setup folders with correct permissions
