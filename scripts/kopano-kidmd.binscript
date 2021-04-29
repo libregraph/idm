@@ -40,6 +40,7 @@ set_defaults() {
 set_defaults
 
 setup() {
+	umask 022
 	if [ ! -e "$DEFAULT_LDIF_MAIN_PATH" ]; then
 		mkdir -p "$DEFAULT_LDIF_MAIN_PATH"
 		chgrp $DEFAULT_GROUP "$DEFAULT_LDIF_MAIN_PATH"
@@ -47,8 +48,8 @@ setup() {
 		if [ -f "$DEFAULT_LDIF_SOURCE_PATH/10-main.ldif.in" ]; then
 			cp -af "$DEFAULT_LDIF_SOURCE_PATH/10-main.ldif.in" "$DEFAULT_LDIF_MAIN_PATH/10-main.ldif"
 			cp -af "$DEFAULT_LDIF_SOURCE_PATH/50-users.ldif.in" "$DEFAULT_LDIF_MAIN_PATH/50-users.ldif"
-			chgrp $DEFAULT_GROUP "$DEFAULT_LDIF_MAIN_PATH/*.ldif"
-			chmod 640 "$DEFAULT_LDIF_MAIN_PATH/*.ldif"
+			chgrp $DEFAULT_GROUP "$DEFAULT_LDIF_MAIN_PATH"/*.ldif
+			chmod 640 "$DEFAULT_LDIF_MAIN_PATH"/*.ldif
 		fi
 	fi
 	if [ ! -e "$DEFAULT_LDIF_CONFIG_PATH" ]; then
