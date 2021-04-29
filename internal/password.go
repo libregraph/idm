@@ -25,7 +25,7 @@ func ValidatePassword(password string, hash string) (bool, error) {
 		algorithmEnd := strings.Index(hash[0:], "}")
 		if algorithmEnd >= 1 {
 			algorithm = hash[0 : algorithmEnd+1]
-			hash = hash[algorithmEnd+2:]
+			hash = hash[algorithmEnd+1:]
 		}
 	}
 
