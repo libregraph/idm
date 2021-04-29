@@ -8,7 +8,7 @@ dn: ou={{.Company}},{{.BaseDN}}
 objectClass: organizationalUnit
 objectClass: top
 objectClass: kopano-company
-ou: Default
+ou: {{.Company}}
 
 dn: ou=addresslists,ou={{.Company}},{{.BaseDN}}
 objectClass: organizationalUnit
