@@ -4,6 +4,11 @@
 
 
 
+## v0.2.3 (2021-04-29)
+
+- Ensure to setup folders with correct permissions
+
+
 ## v0.2.2 (2021-04-29)
 
 - Add setup step for systemd based startup
