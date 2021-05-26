@@ -66,6 +66,7 @@ func newusers(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to open: %w", err)
 		}
 		defer f.Close()
+		r = f
 	} else {
 		r = os.Stdin
 	}
