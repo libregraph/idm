@@ -4,6 +4,13 @@
 
 
 
+## v0.2.6 (2021-05-26)
+
+- Use correct parts count for glibc2 CRYPT
+- Ignore case when selecting password crypt algo
+- Use absolute path for kill command
+
+
 ## v0.2.5 (2021-05-26)
 
 - Fix file loading in newusers sub command
