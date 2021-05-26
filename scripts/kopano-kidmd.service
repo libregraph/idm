@@ -23,7 +23,7 @@ EnvironmentFile=-/etc/kopano/kidmd.cfg
 StateDirectory=kopano-kidmd
 ExecStartPre=/usr/sbin/kopano-kidmd setup
 ExecStart=/usr/sbin/kopano-kidmd serve --log-timestamp=false --systemd-notify
-ExecReload=kill -HUP $MAINPID
+ExecReload=/bin/kill -HUP $MAINPID
 
 [Install]
 WantedBy=multi-user.target
