@@ -4,6 +4,11 @@
 
 
 
+## v0.2.5 (2021-05-26)
+
+- Fix file loading in newusers sub command
+
+
 ## v0.2.4 (2021-04-29)
 
 - Fix missing variable in default LDIF main config template
