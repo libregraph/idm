@@ -32,7 +32,7 @@ func ValidatePassword(password string, hash string) (bool, error) {
 	hashBytes := []byte(hash)
 	var passwordBytes []byte
 
-	switch algorithm {
+	switch strings.ToUpper(algorithm) {
 	case "":
 		// No password scheme, direct comparison.
 		passwordBytes = []byte(password)
