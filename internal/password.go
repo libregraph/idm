@@ -55,8 +55,8 @@ func ValidatePassword(password string, hash string) (bool, error) {
 		if hash[0] == '$' {
 			// In the glibc2 version, salt format for additional encryption
 			// $id$salt$encrypted.
-			hashParts := strings.SplitN(hash, "$", 5)
-			if len(hashParts) == 5 {
+			hashParts := strings.SplitN(hash, "$", 4)
+			if len(hashParts) == 4 {
 				salt = strings.Join(hashParts[:4], "$")
 			}
 		}
