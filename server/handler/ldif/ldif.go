@@ -144,7 +144,12 @@ func treeFromLDIF(l *ldif.LDIF, index Index, options *Options) (*suffix.Tree, er
 
 	// NOTE(longsleep): Create in memory tree records from LDIF data.
 	var entry *ldap.Entry
-	for _, entry = range l.AllEntries() {
+	for _, entryRecord := range l.Entries {
+		if entryRecord == nil || entryRecord.Entry == nil {
+			// NOTE(longsleep): We don't use l.AllEntries as "nil" records can happen.
+			continue
+		}
+		entry = entryRecord.Entry
 		e := &ldifEntry{
 			Entry: &ldap.Entry{
 				DN: strings.ToLower(entry.DN),
