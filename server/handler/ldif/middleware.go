@@ -16,8 +16,8 @@ import (
 	"github.com/go-ldap/ldap/v3"
 	"github.com/sirupsen/logrus"
 
-	"stash.kopano.io/kgol/kidm/internal/ldapserver"
-	"stash.kopano.io/kgol/kidm/server/handler"
+	"github.com/libregraph/idm/internal/ldapserver"
+	"github.com/libregraph/idm/server/handler"
 )
 
 type ldifMiddleware struct {

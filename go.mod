@@ -1,4 +1,4 @@
-module stash.kopano.io/kgol/kidm
+module github.com/libregraph/idm
 
 go 1.16
 

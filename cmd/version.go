@@ -11,7 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"stash.kopano.io/kgol/kidm/version"
+	"github.com/libregraph/idm/version"
 )
 
 // CommandVersion provides the commandline implementation for version.

@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/armon/go-radix"
+	"github.com/libregraph/idm/internal/ldapserver"
 	"github.com/spacewander/go-suffix-tree"
-	"stash.kopano.io/kgol/kidm/internal/ldapserver"
 )
 
 var indexAttributes = map[string]string{

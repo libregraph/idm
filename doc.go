@@ -3,4 +3,4 @@
  * Copyright 2021 Kopano and its licensors
  */
 
-package kidm // import "stash.kopano.io/kgol/kidm"
+package kidm // import "github.com/libregraph/idm"
