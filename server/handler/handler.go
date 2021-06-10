@@ -8,7 +8,7 @@ package handler
 import (
 	"context"
 
-	"stash.kopano.io/kgol/kidm/internal/ldapserver"
+	"github.com/libregraph/idm/internal/ldapserver"
 )
 
 // Interface for handlers.

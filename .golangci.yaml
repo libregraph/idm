@@ -27,7 +27,7 @@ linters-settings:
   lll:
     line-length: 140
   goimports:
-    local-prefixes: stash.kopano.io/kgol/kidm
+    local-prefixes: github.com/libregraph/idm
   gocritic:
     enabled-tags:
       - performance

@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-ldap/ldap/v3"
 
-	"stash.kopano.io/kgol/kidm/internal"
+	"github.com/libregraph/idm/internal"
 )
 
 type ldifEntry struct {

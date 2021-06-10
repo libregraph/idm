@@ -15,7 +15,7 @@ import (
 	"github.com/sethvargo/go-password/password"
 	"github.com/spf13/cobra"
 
-	"stash.kopano.io/kgol/kidm/internal"
+	"github.com/libregraph/idm/internal"
 )
 
 var (

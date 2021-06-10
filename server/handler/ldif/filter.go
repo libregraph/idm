@@ -13,7 +13,7 @@ import (
 
 	"github.com/go-asn1-ber/asn1-ber"
 
-	"stash.kopano.io/kgol/kidm/internal/ldapserver"
+	"github.com/libregraph/idm/internal/ldapserver"
 )
 
 func parseFilterToIndexFilter(filter string) ([][]string, error) {

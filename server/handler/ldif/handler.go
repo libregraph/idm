@@ -23,8 +23,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"stash.kopano.io/kgol/rndm"
 
-	"stash.kopano.io/kgol/kidm/internal/ldapserver"
-	"stash.kopano.io/kgol/kidm/server/handler"
+	"github.com/libregraph/idm/internal/ldapserver"
+	"github.com/libregraph/idm/server/handler"
 )
 
 type ldifHandler struct {

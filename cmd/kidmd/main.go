@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"os"
 
-	"stash.kopano.io/kgol/kidm/cmd"
-	"stash.kopano.io/kgol/kidm/cmd/kidmd/gen"
-	"stash.kopano.io/kgol/kidm/cmd/kidmd/serve"
+	"github.com/libregraph/idm/cmd"
+	"github.com/libregraph/idm/cmd/kidmd/gen"
+	"github.com/libregraph/idm/cmd/kidmd/serve"
 )
 
 func main() {

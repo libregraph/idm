@@ -20,7 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"stash.kopano.io/kgol/kidm/server"
+	"github.com/libregraph/idm/server"
 )
 
 var (

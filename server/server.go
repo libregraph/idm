@@ -18,9 +18,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"stash.kopano.io/kgol/kidm/internal/ldapserver"
-	"stash.kopano.io/kgol/kidm/server/handler"
-	"stash.kopano.io/kgol/kidm/server/handler/ldif"
+	"github.com/libregraph/idm/internal/ldapserver"
+	"github.com/libregraph/idm/server/handler"
+	"github.com/libregraph/idm/server/handler/ldif"
 )
 
 // Server is our server implementation.

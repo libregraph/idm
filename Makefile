@@ -1,4 +1,4 @@
-PACKAGE  = stash.kopano.io/kgol/kidm
+PACKAGE  = github.com/libregraph/idm
 PACKAGE_NAME = kopano-$(shell basename $(PACKAGE))
 
 # Tools

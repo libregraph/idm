@@ -6,8 +6,8 @@
 package server
 
 import (
+	"github.com/libregraph/idm/internal/ldapserver"
 	"github.com/prometheus/client_golang/prometheus"
-	"stash.kopano.io/kgol/kidm/internal/ldapserver"
 )
 
 const (

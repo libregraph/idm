@@ -13,8 +13,8 @@ import (
 	"strings"
 	"text/template"
 
-	"stash.kopano.io/kgol/kidm/internal"
-	"stash.kopano.io/kgol/kidm/server/handler/ldif"
+	"github.com/libregraph/idm/internal"
+	"github.com/libregraph/idm/server/handler/ldif"
 )
 
 const userTemplateLDIF = `<<- /* */ ->>
