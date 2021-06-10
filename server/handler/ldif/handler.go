@@ -23,7 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"stash.kopano.io/kgol/rndm"
 
-	"github.com/libregraph/idm/internal/ldapserver"
+	"github.com/libregraph/idm/pkg/ldapserver"
 	"github.com/libregraph/idm/server/handler"
 )
 

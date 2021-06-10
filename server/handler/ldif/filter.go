@@ -13,7 +13,7 @@ import (
 
 	"github.com/go-asn1-ber/asn1-ber"
 
-	"github.com/libregraph/idm/internal/ldapserver"
+	"github.com/libregraph/idm/pkg/ldapserver"
 )
 
 func parseFilterToIndexFilter(filter string) ([][]string, error) {
