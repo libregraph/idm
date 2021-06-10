@@ -3,7 +3,7 @@
  * Copyright 2021 Kopano and its licensors
  */
 
-package internal
+package ldappassword
 
 import (
 	"crypto/sha1" //nolint,gosec

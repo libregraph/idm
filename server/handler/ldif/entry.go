@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-ldap/ldap/v3"
 
-	"github.com/libregraph/idm/internal"
+	"github.com/libregraph/idm/pkg/ldappassword"
 )
 
 type ldifEntry struct {
@@ -20,7 +20,7 @@ type ldifEntry struct {
 }
 
 func (entry *ldifEntry) validatePassword(bindSimplePw string) error {
-	match, err := internal.ValidatePassword(bindSimplePw, entry.UserPassword.Values[0])
+	match, err := ldappassword.ValidatePassword(bindSimplePw, entry.UserPassword.Values[0])
 	if err != nil {
 		return err
 	}
