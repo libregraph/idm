@@ -15,15 +15,15 @@ import (
 	"github.com/sethvargo/go-password/password"
 	"github.com/spf13/cobra"
 
-	"github.com/libregraph/idm/internal"
+	"github.com/libregraph/idm/pkg/ldappassword"
 )
 
 var (
 	DefaultPasswordScheme = "{ARGON2}"
 
-	DefaultArgon2Memory     = internal.Argon2DefaultParams.Memory
-	DefaultArgon2Iterations = internal.Argon2DefaultParams.Iterations
-	DefaultArgon2Lanes      = internal.Argon2DefaultParams.Parallelism
+	DefaultArgon2Memory     = ldappassword.Argon2DefaultParams.Memory
+	DefaultArgon2Iterations = ldappassword.Argon2DefaultParams.Iterations
+	DefaultArgon2Lanes      = ldappassword.Argon2DefaultParams.Parallelism
 
 	OmitTrailingNewline = false
 
@@ -60,9 +60,9 @@ func CommandPasswd() *cobra.Command {
 }
 
 func passwd(cmd *cobra.Command, args []string) error {
-	internal.Argon2DefaultParams.Memory = DefaultArgon2Memory
-	internal.Argon2DefaultParams.Iterations = DefaultArgon2Iterations
-	internal.Argon2DefaultParams.Parallelism = DefaultArgon2Lanes
+	ldappassword.Argon2DefaultParams.Memory = DefaultArgon2Memory
+	ldappassword.Argon2DefaultParams.Iterations = DefaultArgon2Iterations
+	ldappassword.Argon2DefaultParams.Parallelism = DefaultArgon2Lanes
 
 	var secret string
 	var exclusive = 0
@@ -110,7 +110,7 @@ func passwd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("secret is empty")
 	}
 
-	score := internal.EstimatePasswordStrength(secret, nil)
+	score := ldappassword.EstimatePasswordStrength(secret, nil)
 	if score < DefaultMinPasswordStrength {
 		switch score {
 		case 0:
@@ -129,7 +129,7 @@ func passwd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("secret not secure, %w (score %d)", err, score)
 	}
 
-	hash, err := internal.HashPassword(secret, DefaultPasswordScheme)
+	hash, err := ldappassword.HashPassword(secret, DefaultPasswordScheme)
 	if err != nil {
 		return err
 	}

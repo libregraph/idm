@@ -13,7 +13,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/libregraph/idm/internal"
+	"github.com/libregraph/idm/pkg/ldappassword"
 	"github.com/libregraph/idm/server/handler/ldif"
 )
 
@@ -100,7 +100,7 @@ func outputLDIF(r io.Reader) error {
 		m["detail"] = detail
 
 		if entry.Passwd != "" {
-			hash, hashErr := internal.HashPassword(entry.Passwd, DefaultPasswordScheme)
+			hash, hashErr := ldappassword.HashPassword(entry.Passwd, DefaultPasswordScheme)
 			if hashErr != nil {
 				return hashErr
 			}
