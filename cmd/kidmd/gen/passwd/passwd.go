@@ -129,7 +129,7 @@ func passwd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("secret not secure, %w (score %d)", err, score)
 	}
 
-	hash, err := ldappassword.HashPassword(secret, DefaultPasswordScheme)
+	hash, err := ldappassword.Hash(secret, DefaultPasswordScheme)
 	if err != nil {
 		return err
 	}

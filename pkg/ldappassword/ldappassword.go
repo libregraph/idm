@@ -19,7 +19,7 @@ import (
 
 var Argon2DefaultParams = argon2id.DefaultParams
 
-func ValidatePassword(password string, hash string) (bool, error) {
+func Validate(password string, hash string) (bool, error) {
 	algorithm := ""
 	if hash[0] == '{' {
 		algorithmEnd := strings.Index(hash[0:], "}")
@@ -91,7 +91,7 @@ func ValidatePassword(password string, hash string) (bool, error) {
 	return true, nil
 }
 
-func HashPassword(password string, algorithm string) (string, error) {
+func Hash(password string, algorithm string) (string, error) {
 	var result string
 
 	switch algorithm {

@@ -20,7 +20,7 @@ type ldifEntry struct {
 }
 
 func (entry *ldifEntry) validatePassword(bindSimplePw string) error {
-	match, err := ldappassword.ValidatePassword(bindSimplePw, entry.UserPassword.Values[0])
+	match, err := ldappassword.Validate(bindSimplePw, entry.UserPassword.Values[0])
 	if err != nil {
 		return err
 	}
