@@ -8,7 +8,7 @@ package handler
 import (
 	"context"
 
-	"github.com/libregraph/idm/internal/ldapserver"
+	"github.com/libregraph/idm/pkg/ldapserver"
 )
 
 // Interface for handlers.

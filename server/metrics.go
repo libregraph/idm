@@ -6,7 +6,7 @@
 package server
 
 import (
-	"github.com/libregraph/idm/internal/ldapserver"
+	"github.com/libregraph/idm/pkg/ldapserver"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

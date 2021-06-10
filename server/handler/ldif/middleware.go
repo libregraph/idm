@@ -16,7 +16,7 @@ import (
 	"github.com/go-ldap/ldap/v3"
 	"github.com/sirupsen/logrus"
 
-	"github.com/libregraph/idm/internal/ldapserver"
+	"github.com/libregraph/idm/pkg/ldapserver"
 	"github.com/libregraph/idm/server/handler"
 )
 

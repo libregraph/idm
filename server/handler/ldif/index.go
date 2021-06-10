@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/armon/go-radix"
-	"github.com/libregraph/idm/internal/ldapserver"
+	"github.com/libregraph/idm/pkg/ldapserver"
 	"github.com/spacewander/go-suffix-tree"
 )
 

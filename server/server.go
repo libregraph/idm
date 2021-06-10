@@ -18,7 +18,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/libregraph/idm/internal/ldapserver"
+	"github.com/libregraph/idm/pkg/ldapserver"
 	"github.com/libregraph/idm/server/handler"
 	"github.com/libregraph/idm/server/handler/ldif"
 )
