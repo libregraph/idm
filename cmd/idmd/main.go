@@ -10,12 +10,12 @@ import (
 	"os"
 
 	"github.com/libregraph/idm/cmd"
-	"github.com/libregraph/idm/cmd/kidmd/gen"
-	"github.com/libregraph/idm/cmd/kidmd/serve"
+	"github.com/libregraph/idm/cmd/idmd/gen"
+	"github.com/libregraph/idm/cmd/idmd/serve"
 )
 
 func main() {
-	cmd.RootCmd.Use = "kidmd"
+	cmd.RootCmd.Use = "idmd"
 
 	cmd.RootCmd.AddCommand(serve.CommandServe())
 	cmd.RootCmd.AddCommand(gen.CommandGen())

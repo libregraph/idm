@@ -27,18 +27,24 @@ var indexAttributes = map[string]string{
 	"uidNumber":    "eq",
 	"uniqueMember": "eq",
 
-	"kopanoAccount":       "eq",
-	"kopanoAliases":       "eq",
-	"kopanoViewPrivilege": "eq",
-
 	"sn":        "pres,eq,sub",
 	"givenName": "pres,eq,sub",
+
+	"mailAlternateAddress": "eq",
 
 	// Additional indexes for attributes usually used with AD.
 	"objectGUID":     "eq",
 	"objectSID":      "eq",
 	"otherMailbox":   "eq",
 	"samAccountName": "eq",
+}
+
+func AddIndexAttribute(name string, indices string) {
+	indexAttributes[name] = indices
+}
+
+func RemoveIndexAttribute(name string) {
+	delete(indexAttributes, name)
 }
 
 type Index interface {

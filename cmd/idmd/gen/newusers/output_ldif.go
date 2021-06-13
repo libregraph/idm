@@ -13,16 +13,18 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/libregraph/idm"
 	"github.com/libregraph/idm/pkg/ldappassword"
 	"github.com/libregraph/idm/server/handler/ldif"
 )
 
-const userTemplateLDIF = `<<- /* */ ->>
+var DefaultLDIFBaseDN = "ou=Users,ou={{.Company}},{{.BaseDN}}"
+var DefaultLDIFMailDomain = idm.DefaultMailDomain
+var DefaultLDIFUserTemplate = `<<- /* */ ->>
 dn: uid=<<.entry.Name>>,<<.BaseDN>>
 objectClass: posixAccount
 objectClass: top
 objectClass: inetOrgPerson
-objectClass: kopano-user
 uid: <<.entry.Name>>
 uidNumber: <<with .detail.uidNumber>><<.>><<else>><<AutoIncrement>><<end>>
 <<- with .detail.gidNumber>>
@@ -33,7 +35,7 @@ userPassword: <<.>>
 <<- end>>
 mail: <<.entry.Name>>@{{.MailDomain}}
 <<- range .detail.mail>>
-kopanoAliases: <<.>>
+mailAlternateAddress: <<.>>
 <<- end>>
 cn: <<.detail.cn>>
 <<- with .detail.givenName>>
@@ -42,8 +44,6 @@ givenName: <<.>>
 <<- with .detail.sn>>
 sn: <<.>>
 <<- end>>
-kopanoAccount: 1
-kopanoAdmin: 0
 `
 
 func outputLDIF(r io.Reader) error {
@@ -53,8 +53,8 @@ func outputLDIF(r io.Reader) error {
 	}
 
 	options := &ldif.Options{
-		BaseDN:            "ou=users,ou={{.Company}},{{.BaseDN}}",
-		DefaultMailDomain: "kopano.local",
+		BaseDN:            DefaultLDIFBaseDN,
+		DefaultMailDomain: DefaultLDIFMailDomain,
 	}
 	out := os.Stdout
 
@@ -89,7 +89,7 @@ func outputLDIF(r io.Reader) error {
 	}
 
 	m := map[string]interface{}{}
-	tpl, err := template.New("tpl").Delims("<<", ">>").Funcs(ldif.TemplateFuncs(m, options)).Parse(userTemplateLDIF)
+	tpl, err := template.New("tpl").Delims("<<", ">>").Funcs(ldif.TemplateFuncs(m, options)).Parse(DefaultLDIFUserTemplate)
 	if err != nil {
 		panic(err)
 	}

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Kopano Identity Management Daemon (kidmd) launcher
+# LibgreGraph Identity Management Daemon (idmd) launcher
 #
 # License: AGPL-3.0-only
 # Copyright 2021 Kopano and its licensors
@@ -10,31 +10,31 @@ set -e
 
 # Base defines.
 
-EXE=/usr/libexec/kopano/kidmd
-DEFAULT_LDAP_BASEDN=dc=kopano,dc=local
+EXE=/usr/libexec/libregraph/idmd
+DEFAULT_LDAP_BASEDN=dc=lg,dc=local
 DEFAULT_LDAP_LISTEN=127.0.0.1:10389
-DEFAULT_LDIF_MAIN_PATH=/etc/kopano/kidm/ldif/main.d
-DEFAULT_LDIF_CONFIG_PATH=/etc/kopano/kidm/ldif/config.ldif
-DEFAULT_GROUP=kidm
-DEFAULT_LDIF_SOURCE_PATH=/usr/share/kopano-kidmd
+DEFAULT_LDIF_MAIN_PATH=/etc/libregraph/idm/ldif/main.d
+DEFAULT_LDIF_CONFIG_PATH=/etc/libregraph/idm/ldif/config.ldif
+DEFAULT_GROUP=libregraph-idm
+DEFAULT_LDIF_SOURCE_PATH=/usr/share/libregraph-idmd
 
 set_defaults() {
 	# Inject defaults into environment, to announce possible overrides.
 
 	if [ -n "$DEFAULT_LDAP_BASEDN" ]; then
-		export KIDMD_DEFAULT_LDAP_BASEDN="$DEFAULT_LDAP_BASEDN"
+		export IDMD_DEFAULT_LDAP_BASEDN="$DEFAULT_LDAP_BASEDN"
 	fi
 
 	if [ -n "$DEFAULT_LDAP_LISTEN" ]; then
-		export KIDMD_DEFAULT_LDAP_LISTEN="$DEFAULT_LDAP_LISTEN"
+		export IDMD_DEFAULT_LDAP_LISTEN="$DEFAULT_LDAP_LISTEN"
 	fi
 
 	if [ -n "$DEFAULT_LDIF_MAIN_PATH" ]; then
-		export KIDMD_DEFAULT_LDIF_MAIN_PATH="$DEFAULT_LDIF_MAIN_PATH"
+		export IDMD_DEFAULT_LDIF_MAIN_PATH="$DEFAULT_LDIF_MAIN_PATH"
 	fi
 
 	if [ -n "$DEFAULT_LDIF_CONFIG_PATH" ]; then
-		export KIDMD_DEFAULT_LDIF_CONFIG_PATH="$DEFAULT_LDIF_CONFIG_PATH"
+		export IDMD_DEFAULT_LDIF_CONFIG_PATH="$DEFAULT_LDIF_CONFIG_PATH"
 	fi
 }
 set_defaults
@@ -87,7 +87,7 @@ case "${1}" in
 		# Inject values from environment into command line. This is mainly used
 		# when this script is run from systemd or docker.
 
-		# kidmd basics
+		# idmd basics
 
 		if [ -n "$log_level" ]; then
 			set -- "$@" --log-level="$log_level"

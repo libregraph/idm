@@ -14,6 +14,8 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/libregraph/idm"
 )
 
 const formatAsFileSizeLimit int64 = 1024 * 1024
@@ -21,8 +23,8 @@ const formatAsFileSizeLimit int64 = 1024 * 1024
 func TemplateFuncs(m map[string]interface{}, options *Options) template.FuncMap {
 	defaults := map[string]interface{}{
 		"Company":    "Default",
-		"BaseDN":     "dc=kopano",
-		"MailDomain": "kopano.local",
+		"BaseDN":     idm.DefaultLDAPBaseDN,
+		"MailDomain": idm.DefaultMailDomain,
 	}
 	for k, v := range defaults {
 		if _, ok := m[k]; !ok {

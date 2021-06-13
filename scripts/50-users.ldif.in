@@ -6,21 +6,18 @@
 ## attribute values as needed.
 #{{with .}}
 #{{$uid := "jonas" -}}
-#dn: uid={{$uid}},ou=people,ou={{.Company}},{{.BaseDN}}
+#dn: uid={{$uid}},ou=People,ou={{.Company}},{{.BaseDN}}
 #objectClass: posixAccount
 #objectClass: top
 #objectClass: inetOrgPerson
-#objectClass: kopano-user
 #uid: {{$uid}}
 #uidNumber: {{AutoIncrement}}
 #userPassword: {{$uid}}
 #mail: {{$uid}}@{{.MailDomain}}
-#kopanoAliases: jonas@{{.MailDomain}}
-#kopanoAliases: jonas.brekke@{{.MailDomain}}
+#mailAlternateAddress: jonas@{{.MailDomain}}
+#mailAlternateAddress: jonas.brekke@{{.MailDomain}}
 #cn: Jonas Brekke
 #givenName: Jonas
 #sn: Brekke
-#kopanoAccount: 1
-#kopanoAdmin: 0
 #jpegImage:: {{"./images/jonas.jpeg" | formatAsFileBase64}}
 #{{end}}
