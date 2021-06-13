@@ -20,6 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/libregraph/idm"
 	"github.com/libregraph/idm/server"
 )
 
@@ -30,45 +31,60 @@ var (
 
 	DefaultLDAPListenAddr = "127.0.0.1:10389"
 
-	DefaultLDAPBaseDN                  = "dc=kopano,dc=local"
+	DefaultLDAPBaseDN                  = idm.DefaultLDAPBaseDN
 	DefaultLDAPAllowLocalAnonymousBind = false
 
-	DefaultLDIFMain   = os.Getenv("KIDMD_DEFAULT_LDIF_MAIN_PATH")
-	DefaultLDIFConfig = os.Getenv("KIDMD_DEFAULT_LDIF_CONFIG_PATH")
+	DefaultLDIFMain   = ""
+	DefaultLDIFConfig = ""
 
 	DefaultLDIFCompany    = "Default"
-	DefaultLDIFMailDomain = "kopano.local"
+	DefaultLDIFMailDomain = idm.DefaultMailDomain
 
 	DefaultWithPprof       = false
 	DefaultPprofListenAddr = "127.0.0.1:6060"
 
 	DefaultWithMetrics       = false
 	DefaultMetricsListenAddr = "127.0.0.1:6389"
+
+	DefaultEnvBase = "IDMD_"
+
+	DefaultInitializers = []func(){defaultsFromEnv}
 )
 
-func init() {
-	envDefaultLDAPBaseDN := os.Getenv("KIDMD_DEFAULT_LDAP_BASEDN")
+func defaultsFromEnv() {
+	DefaultLDIFMain = os.Getenv(withEnvBase("DEFAULT_LDIF_MAIN_PATH"))
+	DefaultLDIFConfig = os.Getenv(withEnvBase("DEFAULT_LDIF_CONFIG_PATH"))
+
+	envDefaultLDAPBaseDN := os.Getenv(withEnvBase("DEFAULT_LDAP_BASEDN"))
 	if envDefaultLDAPBaseDN != "" {
 		DefaultLDAPBaseDN = envDefaultLDAPBaseDN
 	}
 
-	envDefaultLDAPListenAddr := os.Getenv("KIDMD_DEFAULT_LDAP_LISTEN")
+	envDefaultLDAPListenAddr := os.Getenv(withEnvBase("DEFAULT_LDAP_LISTEN"))
 	if envDefaultLDAPListenAddr != "" {
 		DefaultLDAPListenAddr = envDefaultLDAPListenAddr
 	}
 
-	envDefaultLDIFCompany := os.Getenv("KIDMD_DEFAULT_LDIF_TEMPLATE_COMPANY")
+	envDefaultLDIFCompany := os.Getenv(withEnvBase("DEFAULT_LDIF_TEMPLATE_COMPANY"))
 	if envDefaultLDIFCompany != "" {
 		DefaultLDIFCompany = envDefaultLDIFCompany
 	}
 
-	envDefaultLDIFMailDomain := os.Getenv("KIDMD_DEFAULT_LDIF_TEMPLATE_MAIL_DOMAIN")
+	envDefaultLDIFMailDomain := os.Getenv(withEnvBase("DEFAULT_LDIF_TEMPLATE_MAIL_DOMAIN"))
 	if envDefaultLDIFMailDomain != "" {
 		DefaultLDIFMailDomain = envDefaultLDIFMailDomain
 	}
 }
 
+func withEnvBase(name string) string {
+	return DefaultEnvBase + name
+}
+
 func CommandServe() *cobra.Command {
+	for _, initializer := range DefaultInitializers {
+		initializer()
+	}
+
 	serveCmd := &cobra.Command{
 		Use:   "serve [...args]",
 		Short: "Start service",

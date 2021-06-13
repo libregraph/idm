@@ -1,5 +1,5 @@
 [Unit]
-Description=Kopano Identity Management Daemon
+Description=LibreGraph Identity Management Daemon
 After=network.target
 
 [Service]
@@ -10,7 +10,7 @@ RestartPreventExitStatus=64
 PrivateTmp=yes
 PrivateDevices=yes
 DynamicUser=yes
-Group=kidm
+Group=libregraph-idm
 NoNewPrivileges=yes
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 AmbientCapabilities=CAP_NET_BIND_SERVICE
@@ -19,10 +19,10 @@ ProtectHome=true
 UMask=0027
 PermissionsStartOnly=true
 Environment=LC_CTYPE=en_US.UTF-8
-EnvironmentFile=-/etc/kopano/kidmd.cfg
-StateDirectory=kopano-kidmd
-ExecStartPre=/usr/sbin/kopano-kidmd setup
-ExecStart=/usr/sbin/kopano-kidmd serve --log-timestamp=false --systemd-notify
+EnvironmentFile=-/etc/libregraph/idmd.cfg
+StateDirectory=libregraph-idmd
+ExecStartPre=/usr/sbin/libregraph-idmd setup
+ExecStart=/usr/sbin/libregraph-idmd serve --log-timestamp=false --systemd-notify
 ExecReload=/bin/kill -HUP $MAINPID
 
 [Install]

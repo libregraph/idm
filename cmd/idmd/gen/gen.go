@@ -8,8 +8,8 @@ package gen
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/libregraph/idm/cmd/kidmd/gen/newusers"
-	"github.com/libregraph/idm/cmd/kidmd/gen/passwd"
+	"github.com/libregraph/idm/cmd/idmd/gen/newusers"
+	"github.com/libregraph/idm/cmd/idmd/gen/passwd"
 )
 
 func CommandGen() *cobra.Command {

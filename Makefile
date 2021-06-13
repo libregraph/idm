@@ -1,5 +1,5 @@
 PACKAGE  = github.com/libregraph/idm
-PACKAGE_NAME = kopano-$(shell basename $(PACKAGE))
+PACKAGE_NAME = libregraph-$(shell basename $(PACKAGE))
 
 # Tools
 
@@ -134,11 +134,10 @@ dist: 3rdparty-LICENSES.md ; $(info building dist tarball ...)
 	cp -avf ../3rdparty-LICENSES.md "${PACKAGE_NAME}-${VERSION}" && \
 	cp -avf ../bin/* "${PACKAGE_NAME}-${VERSION}" && \
 	cp -avf ../docs/example-template.ldif "${PACKAGE_NAME}-${VERSION}/docs" && \
-	cp -avf ../scripts/kopano-kidmd.binscript "${PACKAGE_NAME}-${VERSION}/scripts" && \
-	cp -avf ../scripts/kopano-kidmd.service "${PACKAGE_NAME}-${VERSION}/scripts" && \
-	cp -avf ../scripts/kidmd.cfg "${PACKAGE_NAME}-${VERSION}/scripts" && \
+	cp -avf ../scripts/libregraph-idmd.binscript "${PACKAGE_NAME}-${VERSION}/scripts" && \
+	cp -avf ../scripts/libregraph-idmd.service "${PACKAGE_NAME}-${VERSION}/scripts" && \
+	cp -avf ../scripts/idmd.cfg "${PACKAGE_NAME}-${VERSION}/scripts" && \
 	cp -avf ../scripts/*.ldif.in "${PACKAGE_NAME}-${VERSION}/scripts" && \
-	cp -avf ../scripts/generate-demo-users-ldif.sh "${PACKAGE_NAME}-${VERSION}/scripts" && \
 	tar --owner=0 --group=0 -czvf ${PACKAGE_NAME}-${VERSION}.tar.gz "${PACKAGE_NAME}-${VERSION}" && \
 	cd ..
 

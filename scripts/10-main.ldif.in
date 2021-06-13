@@ -7,25 +7,19 @@ objectClass: top
 dn: ou={{.Company}},{{.BaseDN}}
 objectClass: organizationalUnit
 objectClass: top
-objectClass: kopano-company
 ou: {{.Company}}
 
-dn: ou=addresslists,ou={{.Company}},{{.BaseDN}}
+dn: ou=People,ou={{.Company}},{{.BaseDN}}
 objectClass: organizationalUnit
 objectClass: top
-ou: addresslists
+ou: People
 
-dn: ou=people,ou={{.Company}},{{.BaseDN}}
+dn: ou=Groups,ou={{.Company}},{{.BaseDN}}
 objectClass: organizationalUnit
 objectClass: top
-ou: people
+ou: Groups
 
-dn: ou=groups,ou={{.Company}},{{.BaseDN}}
+dn: ou=Contacts,ou={{.Company}},{{.BaseDN}}
 objectClass: organizationalUnit
 objectClass: top
-ou: groups
-
-dn: ou=contacts,ou={{.Company}},{{.BaseDN}}
-objectClass: organizationalUnit
-objectClass: top
-ou: contacts
+ou: Contacts
