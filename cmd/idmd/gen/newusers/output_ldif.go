@@ -13,38 +13,9 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/libregraph/idm"
 	"github.com/libregraph/idm/pkg/ldappassword"
 	"github.com/libregraph/idm/server/handler/ldif"
 )
-
-var DefaultLDIFBaseDN = "ou=Users,ou={{.Company}},{{.BaseDN}}"
-var DefaultLDIFMailDomain = idm.DefaultMailDomain
-var DefaultLDIFUserTemplate = `<<- /* */ ->>
-dn: uid=<<.entry.Name>>,<<.BaseDN>>
-objectClass: posixAccount
-objectClass: top
-objectClass: inetOrgPerson
-uid: <<.entry.Name>>
-uidNumber: <<with .detail.uidNumber>><<.>><<else>><<AutoIncrement>><<end>>
-<<- with .detail.gidNumber>>
-gidNumber: <<.>>
-<<- end>>
-<<- with .detail.userPassword>>
-userPassword: <<.>>
-<<- end>>
-mail: <<.entry.Name>>@{{.MailDomain}}
-<<- range .detail.mail>>
-mailAlternateAddress: <<.>>
-<<- end>>
-cn: <<.detail.cn>>
-<<- with .detail.givenName>>
-givenName: <<.>>
-<<- end>>
-<<- with .detail.sn>>
-sn: <<.>>
-<<- end>>
-`
 
 func outputLDIF(r io.Reader) error {
 	entries, err := parsePasswdFile(r)

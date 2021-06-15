@@ -31,14 +31,14 @@ var (
 
 	DefaultLDAPListenAddr = "127.0.0.1:10389"
 
-	DefaultLDAPBaseDN                  = idm.DefaultLDAPBaseDN
+	DefaultLDAPBaseDN                  = ""
 	DefaultLDAPAllowLocalAnonymousBind = false
 
 	DefaultLDIFMain   = ""
 	DefaultLDIFConfig = ""
 
 	DefaultLDIFCompany    = "Default"
-	DefaultLDIFMailDomain = idm.DefaultMailDomain
+	DefaultLDIFMailDomain = ""
 
 	DefaultWithPprof       = false
 	DefaultPprofListenAddr = "127.0.0.1:6060"
@@ -47,11 +47,17 @@ var (
 	DefaultMetricsListenAddr = "127.0.0.1:6389"
 
 	DefaultEnvBase = "IDMD_"
-
-	DefaultInitializers = []func(){defaultsFromEnv}
 )
 
-func defaultsFromEnv() {
+func setDefaults() {
+	if DefaultLDAPBaseDN == "" {
+		DefaultLDAPBaseDN = idm.DefaultLDAPBaseDN
+	}
+
+	if DefaultLDIFMailDomain == "" {
+		DefaultLDIFMailDomain = idm.DefaultMailDomain
+	}
+
 	DefaultLDIFMain = os.Getenv(withEnvBase("DEFAULT_LDIF_MAIN_PATH"))
 	DefaultLDIFConfig = os.Getenv(withEnvBase("DEFAULT_LDIF_CONFIG_PATH"))
 
@@ -81,9 +87,7 @@ func withEnvBase(name string) string {
 }
 
 func CommandServe() *cobra.Command {
-	for _, initializer := range DefaultInitializers {
-		initializer()
-	}
+	setDefaults()
 
 	serveCmd := &cobra.Command{
 		Use:   "serve [...args]",
