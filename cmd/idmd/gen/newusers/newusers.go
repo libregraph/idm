@@ -13,8 +13,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/alexedwards/argon2id"
 	"github.com/spf13/cobra"
 
+	"github.com/libregraph/idm"
 	"github.com/libregraph/idm/pkg/ldappassword"
 )
 
@@ -22,14 +24,53 @@ var (
 	DefaultFormat         = "ldif"
 	DefaultPasswordScheme = "{ARGON2}"
 
-	DefaultArgon2Memory     = ldappassword.Argon2DefaultParams.Memory
-	DefaultArgon2Iterations = ldappassword.Argon2DefaultParams.Iterations
-	DefaultArgon2Lanes      = ldappassword.Argon2DefaultParams.Parallelism
+	DefaultArgon2Params *argon2id.Params
 
 	DefaultMinPasswordStrength = 3
+
+	DefaultLDIFBaseDN     = "ou=Users,ou={{.Company}},{{.BaseDN}}"
+	DefaultLDIFMailDomain = ""
 )
 
+var DefaultLDIFUserTemplate = `<<- /* */ ->>
+dn: uid=<<.entry.Name>>,<<.BaseDN>>
+objectClass: posixAccount
+objectClass: top
+objectClass: inetOrgPerson
+uid: <<.entry.Name>>
+uidNumber: <<with .detail.uidNumber>><<.>><<else>><<AutoIncrement>><<end>>
+<<- with .detail.gidNumber>>
+gidNumber: <<.>>
+<<- end>>
+<<- with .detail.userPassword>>
+userPassword: <<.>>
+<<- end>>
+mail: <<.entry.Name>>@{{.MailDomain}}
+<<- range .detail.mail>>
+mailAlternateAddress: <<.>>
+<<- end>>
+cn: <<.detail.cn>>
+<<- with .detail.givenName>>
+givenName: <<.>>
+<<- end>>
+<<- with .detail.sn>>
+sn: <<.>>
+<<- end>>
+`
+
+func setDefaults() {
+	if DefaultArgon2Params == nil {
+		DefaultArgon2Params = ldappassword.Argon2DefaultParams
+	}
+
+	if DefaultLDIFMailDomain == "" {
+		DefaultLDIFMailDomain = idm.DefaultMailDomain
+	}
+}
+
 func CommandNewusers() *cobra.Command {
+	setDefaults()
+
 	newusersCmd := &cobra.Command{
 		Use:   "newusers [<file>|-]",
 		Short: "Create LDIF file for new users in batch",
@@ -45,9 +86,9 @@ func CommandNewusers() *cobra.Command {
 
 	newusersCmd.Flags().StringVar(&DefaultFormat, "format", DefaultFormat, "Output format")
 	newusersCmd.Flags().StringVar(&DefaultPasswordScheme, "password-scheme", DefaultPasswordScheme, "Password hash algorithm, supports: {ARGON2}, {CLEARTEXT}")
-	newusersCmd.Flags().Uint32Var(&DefaultArgon2Memory, "argon2-memory", DefaultArgon2Memory, "Amount of memory used for ARGON2 password hashing in Kibibytes")
-	newusersCmd.Flags().Uint32Var(&DefaultArgon2Iterations, "argon2-iterations", DefaultArgon2Iterations, "Number of iterations over memory used for ARGON2 password hashing")
-	newusersCmd.Flags().Uint8Var(&DefaultArgon2Lanes, "argon2-lanes", DefaultArgon2Lanes, "Number of lanes used for ARGON2 password hashing")
+	newusersCmd.Flags().Uint32Var(&DefaultArgon2Params.Memory, "argon2-memory", DefaultArgon2Params.Memory, "Amount of memory used for ARGON2 password hashing in Kibibytes")
+	newusersCmd.Flags().Uint32Var(&DefaultArgon2Params.Iterations, "argon2-iterations", DefaultArgon2Params.Iterations, "Number of iterations over memory used for ARGON2 password hashing")
+	newusersCmd.Flags().Uint8Var(&DefaultArgon2Params.Parallelism, "argon2-lanes", DefaultArgon2Params.Parallelism, "Number of lanes used for ARGON2 password hashing")
 	newusersCmd.Flags().IntVar(&DefaultMinPasswordStrength, "min-password-strength", DefaultMinPasswordStrength, "Mimimal required password strength (0=too guessable, 1=very guessable, 2=somewhat guessable, 4=safely unguessable, 5=very unguessable)")
 
 	return newusersCmd
@@ -71,9 +112,9 @@ func newusers(cmd *cobra.Command, args []string) error {
 		r = os.Stdin
 	}
 
-	ldappassword.Argon2DefaultParams.Memory = DefaultArgon2Memory
-	ldappassword.Argon2DefaultParams.Iterations = DefaultArgon2Iterations
-	ldappassword.Argon2DefaultParams.Parallelism = DefaultArgon2Lanes
+	ldappassword.Argon2DefaultParams.Memory = DefaultArgon2Params.Memory
+	ldappassword.Argon2DefaultParams.Iterations = DefaultArgon2Params.Iterations
+	ldappassword.Argon2DefaultParams.Parallelism = DefaultArgon2Params.Parallelism
 
 	if DefaultFormat == "ldif" {
 		return outputLDIF(r)

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/alexedwards/argon2id"
 	"github.com/sethvargo/go-password/password"
 	"github.com/spf13/cobra"
 
@@ -21,16 +22,22 @@ import (
 var (
 	DefaultPasswordScheme = "{ARGON2}"
 
-	DefaultArgon2Memory     = ldappassword.Argon2DefaultParams.Memory
-	DefaultArgon2Iterations = ldappassword.Argon2DefaultParams.Iterations
-	DefaultArgon2Lanes      = ldappassword.Argon2DefaultParams.Parallelism
+	DefaultArgon2Params *argon2id.Params
 
 	OmitTrailingNewline = false
 
 	DefaultMinPasswordStrength = 3
 )
 
+func setDefaults() {
+	if DefaultArgon2Params == nil {
+		DefaultArgon2Params = ldappassword.Argon2DefaultParams
+	}
+}
+
 func CommandPasswd() *cobra.Command {
+	setDefaults()
+
 	passwdCmd := &cobra.Command{
 		Use:   "passwd",
 		Short: "Password utility",
@@ -45,9 +52,9 @@ func CommandPasswd() *cobra.Command {
 	}
 
 	passwdCmd.Flags().StringVar(&DefaultPasswordScheme, "password-scheme", DefaultPasswordScheme, "Password hash algorithm, supports: {ARGON2}, {CLEARTEXT}")
-	passwdCmd.Flags().Uint32Var(&DefaultArgon2Memory, "argon2-memory", DefaultArgon2Memory, "Amount of memory used for ARGON2 password hashing in Kibibytes")
-	passwdCmd.Flags().Uint32Var(&DefaultArgon2Iterations, "argon2-iterations", DefaultArgon2Iterations, "Number of iterations over memory used for ARGON2 password hashing")
-	passwdCmd.Flags().Uint8Var(&DefaultArgon2Lanes, "argon2-lanes", DefaultArgon2Lanes, "Number of lanes used for ARGON2 password hashing")
+	passwdCmd.Flags().Uint32Var(&DefaultArgon2Params.Memory, "argon2-memory", DefaultArgon2Params.Memory, "Amount of memory used for ARGON2 password hashing in Kibibytes")
+	passwdCmd.Flags().Uint32Var(&DefaultArgon2Params.Iterations, "argon2-iterations", DefaultArgon2Params.Iterations, "Number of iterations over memory used for ARGON2 password hashing")
+	passwdCmd.Flags().Uint8Var(&DefaultArgon2Params.Parallelism, "argon2-lanes", DefaultArgon2Params.Parallelism, "Number of lanes used for ARGON2 password hashing")
 
 	passwdCmd.Flags().StringP("secret", "s", "", "The secret to hash")
 	passwdCmd.Flags().BoolP("generate", "g", false, "Generate a random secret (forces cleartext scheme)")
@@ -60,9 +67,9 @@ func CommandPasswd() *cobra.Command {
 }
 
 func passwd(cmd *cobra.Command, args []string) error {
-	ldappassword.Argon2DefaultParams.Memory = DefaultArgon2Memory
-	ldappassword.Argon2DefaultParams.Iterations = DefaultArgon2Iterations
-	ldappassword.Argon2DefaultParams.Parallelism = DefaultArgon2Lanes
+	ldappassword.Argon2DefaultParams.Memory = DefaultArgon2Params.Memory
+	ldappassword.Argon2DefaultParams.Iterations = DefaultArgon2Params.Iterations
+	ldappassword.Argon2DefaultParams.Parallelism = DefaultArgon2Params.Parallelism
 
 	var secret string
 	var exclusive = 0
