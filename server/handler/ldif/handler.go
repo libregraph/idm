@@ -404,6 +404,8 @@ func (h *ldifHandler) searchEntriesPump(ctx context.Context, current *ldifMemory
 		return true
 	}
 
+	searchBaseDN := strings.ToLower(searchReq.BaseDN)
+
 	load := true
 	if len(indexFilter) > 0 {
 		// Get entries with help of index.
@@ -425,8 +427,10 @@ func (h *ldifHandler) searchEntriesPump(ctx context.Context, current *ldifMemory
 						// Prevent duplicates.
 						continue
 					}
-					if ok := pump(entryRecord); !ok {
-						return
+					if strings.HasSuffix(entryRecord.DN, searchBaseDN) {
+						if ok := pump(entryRecord); !ok {
+							return
+						}
 					}
 					cache[entryRecord] = struct{}{}
 				}
@@ -436,7 +440,6 @@ func (h *ldifHandler) searchEntriesPump(ctx context.Context, current *ldifMemory
 	if load {
 		// Walk through all entries (this is slow).
 		h.logger.WithField("filter", searchReq.Filter).Warnln("ldap search filter does not match any index, using slow walk")
-		searchBaseDN := strings.ToLower(searchReq.BaseDN)
 		current.t.WalkSuffix([]byte(searchBaseDN), func(key []byte, entryRecord interface{}) bool {
 			if ok := pump(entryRecord.(*ldifEntry)); !ok {
 				return true
