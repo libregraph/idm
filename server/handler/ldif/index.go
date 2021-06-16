@@ -20,7 +20,7 @@ var indexAttributes = map[string]string{
 	"objectClass":  "eq",
 	"cn":           "pres,eq,sub",
 	"gidNumber":    "eq",
-	"mail":         "eq",
+	"mail":         "pres,eq,sub",
 	"memberUid":    "eq",
 	"ou":           "eq",
 	"uid":          "eq",
