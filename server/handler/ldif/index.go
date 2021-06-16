@@ -67,8 +67,8 @@ func (im indexMap) Add(name, op string, values []string, entry *ldifEntry) bool 
 }
 
 func (im indexMap) Load(name, op string, value ...string) ([]*ldifEntry, bool) {
-	values := im[strings.ToLower(value[0])]
-	return values, true
+	entries := im[strings.ToLower(value[0])]
+	return entries, true
 }
 
 type indexSuffixTree struct {
@@ -143,9 +143,9 @@ type indexSubTree struct {
 	ist  *indexSuffixTree
 }
 
-func newIndexSubTree(pres indexMap) *indexSubTree {
+func newIndexSubTree() *indexSubTree {
 	return &indexSubTree{
-		pres: pres,
+		pres: newIndexMap(),
 		irt:  newIndexRadixTree(),
 		ist:  newIndexSuffixTree(),
 	}
@@ -170,6 +170,9 @@ func (idx *indexSubTree) Load(name, op string, params ...string) ([]*ldifEntry, 
 
 	switch tag {
 	case ldapserver.FilterSubstringsAny:
+		// TODO(longsleep): Find a suitable way for full text search substring
+		// matching, for example with Knuth-Morris-Pratt algorithm. Currently
+		// we just do a presence match.
 		return idx.pres.Load(name, op, "")
 	case ldapserver.FilterSubstringsInitial:
 		return idx.irt.Load(name, op, params[0])
@@ -185,15 +188,13 @@ type indexMapRegister map[string]Index
 func newIndexMapRegister() indexMapRegister {
 	imr := make(indexMapRegister)
 	for name, ops := range indexAttributes {
-
-		pres := newIndexMap()
 		for _, op := range strings.Split(ops, ",") {
 			switch op {
 			case "sub":
-				imr[imr.getKey(name, op)] = newIndexSubTree(pres)
+				imr[imr.getKey(name, op)] = newIndexSubTree()
 			case "pres":
-				imr[imr.getKey(name, op)] = pres
-			default:
+				imr[imr.getKey(name, op)] = newIndexMap()
+			case "eq":
 				imr[imr.getKey(name, op)] = newIndexMap()
 			}
 		}
