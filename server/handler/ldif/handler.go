@@ -395,10 +395,18 @@ func (h *ldifHandler) searchEntriesPump(ctx context.Context, current *ldifMemory
 		select {
 		case pumpCh <- entryRecord:
 		case <-ctx.Done():
-			h.logger.WithField("paging_cookie", string(pagingControl.Cookie)).Warnln("ldap search paging pump context done")
+			if pagingControl != nil {
+				h.logger.WithField("paging_cookie", string(pagingControl.Cookie)).Warnln("ldap search paging pump context done")
+			} else {
+				h.logger.Warnln("ldap search pump context done")
+			}
 			return false
 		case <-time.After(1 * time.Minute):
-			h.logger.WithField("paging_cookie", string(pagingControl.Cookie)).Warnln("ldap search paging pump timeout")
+			if pagingControl != nil {
+				h.logger.WithField("paging_cookie", string(pagingControl.Cookie)).Warnln("ldap search paging pump timeout")
+			} else {
+				h.logger.Warnln("ldap search pump timeout")
+			}
 			return false
 		}
 		return true
