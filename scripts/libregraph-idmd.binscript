@@ -3,7 +3,7 @@
 # LibgreGraph Identity Management Daemon (idmd) launcher
 #
 # License: AGPL-3.0-only
-# Copyright 2021 Kopano and its licensors
+# Copyright 2021 The LibreGraph Authors.
 #
 
 set -e
