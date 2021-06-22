@@ -18,7 +18,6 @@ INFO[0000] LDAP listener started                         listen_addr="127.0.0.1:
 INFO[0000] ready
 ```
 
-When packaging up IDM it is recommended to invoke idm through its [binscript](https://github.com/libregraph/idm/blob/master/scripts/libregraph-idmd.binscript) to simplify execution.
 ### Configuration
 
 The default base DN of IDM is `dc=lg,dc=local`. There is usually no need to change, it if you don't use the LDAP data for anything else. The value needs to match what the clients have configured. Similarly, the default mail domain is `lg.local`.
@@ -27,12 +26,12 @@ Both values can be changed by passing `--ldap-base-dn` or `--ldif-template-defau
 
 IDM uses ldif files for its data source and those files, the location of these files needs to be passed at startup using the `--ldif-main` parameter.
 
-#### Addding a service user for LDAP access
+#### Adding a service user for LDAP access
 
 By default IDM does not have any users and anonymous bind is disabled. You can enable anonymous bind support for local requests by passing `--ldap-allow-local-anonymous` when running `idmd`. Alternatively a service user can be specified in the following way:
 
 ```bash
-cat <<EOF > /etc/libregraph/idm/ldif/config.ldif
+cat <<EOF > ./config.ldif
 dn: cn=readonly,{{.BaseDN}}
 cn: readonly
 description: LDAP read only service user
@@ -42,7 +41,7 @@ userPassword: readonly
 EOF
 ```
 
-And then passed as an additional parameter when starting `idmd` by passing `--ldif-config /etc/libregraph/idm/ldif/config.ldif`. The `config.ldif` is for service users only and the data in there is used for bind requests only, but never returned for search requests.
+And then passed as an additional parameter when starting `idmd` by passing `--ldif-config ./config.ldif`. The `config.ldif` is for service users only and the data in there is used for bind requests only, but never returned for search requests.
 
 #### Add users to the ldap service
 
@@ -61,7 +60,7 @@ uid:userPassword:uidNumber:gidNumber:cn,[mail][,mailAlternateAddress...]:ignored
 For example, like this:
 
 ```bash
-cat << EOF | ./idmd gen newuszxsedders - --min-password-strength=4 > /etc/libregraph/idm/ldif/main.d/50-users.ldif
+cat << EOF | ./idmd gen newuszxsedders - --min-password-strength=4 > ./ldif/50-users.ldif
 jonas:passwordOfJonas123:::Jonas Brekke,jonas@lg.local::
 timmothy:passwordOfTimmothy456:::Timmothy Schöwalter::
 EOF
@@ -70,7 +69,7 @@ EOF
 This outputs an LDIF template file which you can modify as needed. When done run restart `idmd` to make the new users available. Keep in mind that some of the attributes must be unique.
 ##### Replace existing OpenLDAP with IDM
 
-On the LDAP server export all its data using `slapcat` and write the resulting ldif to for example `/etc/libregraph/idm/ldif/main.d/10-main.ldif`. This is a drop in replacement and all what was in OpenLDAP is now also in IDM.
+On the LDAP server export all its data using `slapcat` and write the resulting ldif to for example `./ldif/10-main.ldif`. This is a drop in replacement and all what was in OpenLDAP is now also in IDM.
 
 Either stop `slapd` and change the IDM configuration to listen where `slapd` used to listen or change the clients to connect to where `idmd` listens to migrate.
 ### Extra goodies
