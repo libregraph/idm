@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Change copyright headers from Kopano to LibreGraph Authors
+- Add A+C files
+- Avoid duplicate index entries when using sub and pres
+- Index mail pres and sub for mail attribute
+- Cure potential panic in search without pagination
+- Apply search BaseDN when returning values from index
+- Introduce proper way to set defaults with option to override
+- Remove Kopano specific defaults and naming for white label rename
+- Rename public stuttering API functions
+- Make internal ldappasswd package importable
+- Make internal ldapserver package importable
+- Remove Jenkinsfile to prepare for external CI
+- Move project to github.com/libregraph/idm
+- Add proper LICENSE file
+- Add readme file
 
 
 ## v0.2.7 (2021-05-31)
