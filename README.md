@@ -60,18 +60,20 @@ uid:userPassword:uidNumber:gidNumber:cn,[mail][,mailAlternateAddress...]:ignored
 For example, like this:
 
 ```bash
-cat << EOF | ./idmd gen newuszxsedders - --min-password-strength=4 > ./ldif/50-users.ldif
+cat << EOF | ./idmd gen newusers - --min-password-strength=4 > ./ldif/50-users.ldif
 jonas:passwordOfJonas123:::Jonas Brekke,jonas@lg.local::
 timmothy:passwordOfTimmothy456:::Timmothy Schöwalter::
 EOF
 ```
 
 This outputs an LDIF template file which you can modify as needed. When done run restart `idmd` to make the new users available. Keep in mind that some of the attributes must be unique.
+
 ##### Replace existing OpenLDAP with IDM
 
 On the LDAP server export all its data using `slapcat` and write the resulting ldif to for example `./ldif/10-main.ldif`. This is a drop in replacement and all what was in OpenLDAP is now also in IDM.
 
 Either stop `slapd` and change the IDM configuration to listen where `slapd` used to listen or change the clients to connect to where `idmd` listens to migrate.
+
 ### Extra goodies
 
 #### Template support
