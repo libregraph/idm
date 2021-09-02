@@ -80,6 +80,7 @@ func parseLDIFDirectory(pn string, options *Options) (*ldif.LDIF, []error, error
 					return fmt.Errorf("template read error: %w", copyErr)
 				}
 			}
+			buf.WriteString("\n\n")
 			return nil
 		}()
 		if err != nil {
