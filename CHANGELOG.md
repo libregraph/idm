@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+
+
+## v0.3.0 (2021-09-29)
+
 - Add new contributor/authors
 - Fix loading of LDIF directory
 - Change license to Apache License 2.0
