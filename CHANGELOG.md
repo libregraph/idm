@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Add new contributor/authors
+- Fix loading of LDIF directory
+- Change license to Apache License 2.0
+- review comments
+- review comments
+- Update readme for usage from compiled binary
+- Rewrite readme
+- Remove Kopano wording from readme file
 - Change copyright headers from Kopano to LibreGraph Authors
 - Add A+C files
 - Avoid duplicate index entries when using sub and pres
