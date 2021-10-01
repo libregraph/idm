@@ -8,6 +8,9 @@ package owncloud
 type Options struct {
 	DSN string
 
+	JoinUsername bool
+	JoinUUID     bool
+
 	BaseDN                  string
 	AllowLocalAnonymousBind bool
 

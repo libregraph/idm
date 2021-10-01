@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-asn1-ber/asn1-ber"
+	ber "github.com/go-asn1-ber/asn1-ber"
 	"github.com/go-ldap/ldap/v3"
 )
 
@@ -380,4 +380,60 @@ func ServerFilterAttributes(attributes []string, entry *ldap.Entry) (LDAPResultC
 	}
 
 	return ldap.LDAPResultSuccess, nil
+}
+
+func GetFilterObjectClass(filter string) (string, error) {
+	f, err := CompileFilter(filter)
+	if err != nil {
+		return "", err
+	}
+	return parseFilterObjectClass(f)
+}
+
+func parseFilterObjectClass(f *ber.Packet) (string, error) {
+	objectClass := ""
+	switch FilterMap[uint8(f.Tag)] {
+	case "Equality Match":
+		if len(f.Children) != 2 {
+			return "", errors.New("Equality match must have only two children")
+		}
+		attribute := strings.ToLower(f.Children[0].Value.(string))
+		value := f.Children[1].Value.(string)
+		if attribute == "objectclass" {
+			objectClass = strings.ToLower(value)
+		}
+	case "And":
+		for _, child := range f.Children {
+			subType, err := parseFilterObjectClass(child)
+			if err != nil {
+				return "", err
+			}
+			if len(subType) > 0 {
+				objectClass = subType
+			}
+		}
+	case "Or":
+		for _, child := range f.Children {
+			subType, err := parseFilterObjectClass(child)
+			if err != nil {
+				return "", err
+			}
+			if len(subType) > 0 {
+				objectClass = subType
+			}
+		}
+	case "Not":
+		if len(f.Children) != 1 {
+			return "", errors.New("Not filter must have only one child")
+		}
+		subType, err := parseFilterObjectClass(f.Children[0])
+		if err != nil {
+			return "", err
+		}
+		if len(subType) > 0 {
+			objectClass = subType
+		}
+
+	}
+	return strings.ToLower(objectClass), nil
 }
