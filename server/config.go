@@ -27,6 +27,8 @@ type Config struct {
 	LDIFDefaultMailDomain string
 	LDIFTemplateExtraVars map[string]interface{}
 
+	OCDatabaseDSN string
+
 	Metrics prometheus.Registerer
 
 	OnReady func(*Server)

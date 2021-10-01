@@ -21,6 +21,7 @@ import (
 	"github.com/libregraph/idm/pkg/ldapserver"
 	"github.com/libregraph/idm/server/handler"
 	"github.com/libregraph/idm/server/handler/ldif"
+	"github.com/libregraph/idm/server/handler/owncloud"
 )
 
 // Server is our server implementation.
@@ -41,20 +42,21 @@ func NewServer(c *Config) (*Server, error) {
 		logger: c.Logger,
 	}
 
-	ldifHandlerOptions := &ldif.Options{
-		BaseDN:                  s.config.LDAPBaseDN,
-		AllowLocalAnonymousBind: s.config.LDAPAllowLocalAnonymousBind,
-
-		DefaultCompany:    s.config.LDIFDefaultCompany,
-		DefaultMailDomain: s.config.LDIFDefaultMailDomain,
-		TemplateExtraVars: s.config.LDIFTemplateExtraVars,
-
-		TemplateDebug: os.Getenv("KIDM_TEMPLATE_DEBUG") != "",
-	}
-
 	var err error
 	switch c.LDAPHandler {
 	case "ldif":
+
+		ldifHandlerOptions := &ldif.Options{
+			BaseDN:                  s.config.LDAPBaseDN,
+			AllowLocalAnonymousBind: s.config.LDAPAllowLocalAnonymousBind,
+
+			DefaultCompany:    s.config.LDIFDefaultCompany,
+			DefaultMailDomain: s.config.LDIFDefaultMailDomain,
+			TemplateExtraVars: s.config.LDIFTemplateExtraVars,
+
+			TemplateDebug: os.Getenv("KIDM_TEMPLATE_DEBUG") != "",
+		}
+
 		s.LDAPHandler, err = ldif.NewLDIFHandler(s.logger, s.config.LDIFMain, ldifHandlerOptions)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create LDIF source handler: %w", err)
@@ -67,7 +69,19 @@ func NewServer(c *Config) (*Server, error) {
 			s.LDAPHandler = middleware.WithHandler(s.LDAPHandler)
 		}
 	case "owncloud":
+		ocHandlerOptions := &owncloud.Options{
+			DSN:                     s.config.OCDatabaseDSN,
+			BaseDN:                  s.config.LDAPBaseDN,
+			AllowLocalAnonymousBind: s.config.LDAPAllowLocalAnonymousBind,
 
+			DefaultCompany:    s.config.LDIFDefaultCompany,
+			DefaultMailDomain: s.config.LDIFDefaultMailDomain,
+		}
+
+		s.LDAPHandler, err = owncloud.NewOwnCloudHandler(s.logger, ocHandlerOptions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create LDIF source handler: %w", err)
+		}
 	default:
 	}
 

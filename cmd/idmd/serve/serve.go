@@ -41,6 +41,8 @@ var (
 	DefaultLDIFCompany    = "Default"
 	DefaultLDIFMailDomain = ""
 
+	DefaultOCDatabaseDSN = "owncloud:secret@tcp(localhost:3306)/owncloud"
+
 	DefaultWithPprof       = false
 	DefaultPprofListenAddr = "127.0.0.1:6060"
 
@@ -67,6 +69,11 @@ func setDefaults() {
 		DefaultLDAPBaseDN = envDefaultLDAPBaseDN
 	}
 
+	envDefaultLDAPHandler := os.Getenv(withEnvBase("DEFAULT_LDAP_HANDLER"))
+	if envDefaultLDAPHandler != "" {
+		DefaultLDAPHandler = envDefaultLDAPHandler
+	}
+
 	envDefaultLDAPListenAddr := os.Getenv(withEnvBase("DEFAULT_LDAP_LISTEN"))
 	if envDefaultLDAPListenAddr != "" {
 		DefaultLDAPListenAddr = envDefaultLDAPListenAddr
@@ -80,6 +87,11 @@ func setDefaults() {
 	envDefaultLDIFMailDomain := os.Getenv(withEnvBase("DEFAULT_LDIF_TEMPLATE_MAIL_DOMAIN"))
 	if envDefaultLDIFMailDomain != "" {
 		DefaultLDIFMailDomain = envDefaultLDIFMailDomain
+	}
+
+	envDefaultOCDatabaseDSN := os.Getenv(withEnvBase("DEFAULT_OWNCLOUD_DATABASE_DSN"))
+	if envDefaultOCDatabaseDSN != "" {
+		DefaultOCDatabaseDSN = envDefaultOCDatabaseDSN
 	}
 }
 
@@ -120,6 +132,8 @@ func CommandServe() *cobra.Command {
 
 	serveCmd.Flags().StringVar(&DefaultLDIFCompany, "ldif-template-default-company", DefaultLDIFCompany, "Sets the default for of the .Company value used in LDIF templates")
 	serveCmd.Flags().StringVar(&DefaultLDIFMailDomain, "ldif-template-default-mail-domain", DefaultLDIFMailDomain, "Set the default value of the .MailDomain value used in LDIF templates")
+
+	serveCmd.Flags().StringVar(&DefaultOCDatabaseDSN, "owncloud-database-dsn", DefaultOCDatabaseDSN, "DSN to connect to tho owncloud database")
 
 	serveCmd.Flags().BoolVar(&DefaultWithPprof, "with-pprof", DefaultWithPprof, "With pprof enabled")
 	serveCmd.Flags().StringVar(&DefaultPprofListenAddr, "pprof-listen", DefaultPprofListenAddr, "TCP listen address for pprof")
@@ -174,6 +188,8 @@ func (bs *bootstrap) configure(ctx context.Context, cmd *cobra.Command, args []s
 
 		LDIFDefaultCompany:    DefaultLDIFCompany,
 		LDIFDefaultMailDomain: DefaultLDIFMailDomain,
+
+		OCDatabaseDSN: DefaultOCDatabaseDSN,
 
 		OnReady: func(srv *server.Server) {
 			if DefaultSystemdNotify {

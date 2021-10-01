@@ -6,6 +6,8 @@
 package owncloud
 
 type Options struct {
+	DSN string
+
 	BaseDN                  string
 	AllowLocalAnonymousBind bool
 
