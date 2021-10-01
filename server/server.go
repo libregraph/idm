@@ -53,16 +53,22 @@ func NewServer(c *Config) (*Server, error) {
 	}
 
 	var err error
-	s.LDAPHandler, err = ldif.NewLDIFHandler(s.logger, s.config.LDIFMain, ldifHandlerOptions)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create LDIF source handler: %w", err)
-	}
-	if s.config.LDIFConfig != "" {
-		middleware, middlewareErr := ldif.NewLDIFMiddleware(s.logger, s.config.LDIFConfig, ldifHandlerOptions)
-		if middlewareErr != nil {
-			return nil, fmt.Errorf("failed to create LDIF config handler: %w", middlewareErr)
+	switch c.LDAPHandler {
+	case "ldif":
+		s.LDAPHandler, err = ldif.NewLDIFHandler(s.logger, s.config.LDIFMain, ldifHandlerOptions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create LDIF source handler: %w", err)
 		}
-		s.LDAPHandler = middleware.WithHandler(s.LDAPHandler)
+		if s.config.LDIFConfig != "" {
+			middleware, middlewareErr := ldif.NewLDIFMiddleware(s.logger, s.config.LDIFConfig, ldifHandlerOptions)
+			if middlewareErr != nil {
+				return nil, fmt.Errorf("failed to create LDIF config handler: %w", middlewareErr)
+			}
+			s.LDAPHandler = middleware.WithHandler(s.LDAPHandler)
+		}
+	case "owncloud":
+
+	default:
 	}
 
 	s.LDAPServer = ldapserver.NewServer()

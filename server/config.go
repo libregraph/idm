@@ -14,6 +14,7 @@ import (
 type Config struct {
 	Logger logrus.FieldLogger
 
+	LDAPHandler    string
 	LDAPListenAddr string
 
 	LDAPBaseDN                  string

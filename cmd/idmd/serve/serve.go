@@ -29,6 +29,7 @@ var (
 	DefaultLogLevel      = "info"
 	DefaultSystemdNotify = false
 
+	DefaultLDAPHandler    = "ldif"
 	DefaultLDAPListenAddr = "127.0.0.1:10389"
 
 	DefaultLDAPBaseDN                  = ""
@@ -109,6 +110,7 @@ func CommandServe() *cobra.Command {
 	serveCmd.Flags().StringVar(&DefaultLogLevel, "log-level", DefaultLogLevel, "Log level (one of panic, fatal, error, warn, info or debug)")
 	serveCmd.Flags().BoolVar(&DefaultSystemdNotify, "systemd-notify", DefaultSystemdNotify, "Enable systemd sd_notify callback")
 
+	serveCmd.Flags().StringVar(&DefaultLDAPHandler, "ldap-handler", DefaultLDAPHandler, "Name of handler to use, can be one of 'ldif' or 'owncloud'")
 	serveCmd.Flags().StringVar(&DefaultLDAPListenAddr, "ldap-listen", DefaultLDAPListenAddr, "TCP listen address for LDAP requests")
 	serveCmd.Flags().StringVar(&DefaultLDAPBaseDN, "ldap-base-dn", DefaultLDAPBaseDN, "BaseDN for LDAP requests")
 	serveCmd.Flags().BoolVar(&DefaultLDAPAllowLocalAnonymousBind, "ldap-allow-local-anonymous", DefaultLDAPAllowLocalAnonymousBind, "Allow anonymous LDAP bind for all local LDAP clients")
@@ -161,6 +163,7 @@ func (bs *bootstrap) configure(ctx context.Context, cmd *cobra.Command, args []s
 	cfg := &server.Config{
 		Logger: logger,
 
+		LDAPHandler:    DefaultLDAPHandler,
 		LDAPListenAddr: DefaultLDAPListenAddr,
 
 		LDAPBaseDN:                  DefaultLDAPBaseDN,
