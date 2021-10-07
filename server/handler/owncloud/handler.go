@@ -31,8 +31,7 @@ type ocHandler struct {
 
 	logger logrus.FieldLogger
 
-	db        *sql.DB
-	selectSQL string
+	db *sql.DB
 
 	hasher owncloudpassword.Hasher
 
@@ -49,31 +48,6 @@ func NewOwnCloudHandler(logger logrus.FieldLogger, options *Options) (handler.Ha
 		return nil, fmt.Errorf("base dn is empty")
 	}
 
-	sel := "SELECT id, email, user_id, display_name, quota, last_login, backend, home, state"
-	from := `
-		FROM oc_accounts a
-		`
-	if options.JoinUsername {
-		sel += ", p.configvalue AS username"
-		from += `LEFT JOIN oc_preferences p
-						ON a.user_id=p.userid
-						AND p.appid='core'
-						AND p.configkey='username'`
-	} else {
-		// fallback to user_id as username
-		sel += ", user_id AS username"
-	}
-	if options.JoinUUID {
-		sel += ", p2.configvalue AS ownclouduuid"
-		from += `LEFT JOIN oc_preferences p2
-						ON a.user_id=p2.userid
-						AND p2.appid='core'
-						AND p2.configkey='ownclouduuid'`
-	} else {
-		// fallback to user_id as ownclouduuid
-		sel += ", user_id AS ownclouduuid"
-	}
-
 	h := &ocHandler{
 		options: options,
 		logger:  logger,
@@ -82,7 +56,6 @@ func NewOwnCloudHandler(logger logrus.FieldLogger, options *Options) (handler.Ha
 
 		baseDN:                  strings.ToLower(options.BaseDN),
 		allowLocalAnonymousBind: options.AllowLocalAnonymousBind,
-		selectSQL:               sel + from,
 
 		ctx: context.Background(),
 	}
@@ -114,14 +87,13 @@ func (h *ocHandler) open() error {
 		return errors.Wrap(err, "error connecting to the database")
 	}
 
-	//open db
 	h.logger.WithFields(logrus.Fields{
 		//"version":       l.Version,
-		//"entries_count": len(l.Entries),
-		//"tree_length":   t.Len(),
-		"base_dn": h.options.BaseDN,
+		"accounts_count": h.GetAccountCount(),
+		"groups_count":   h.GetGroupCount(),
+		"base_dn":        h.options.BaseDN,
 		//"indexes":       len(index),
-	}).Debugln("loaded LDIF")
+	}).Debugln("database opened")
 
 	return nil
 }
@@ -155,20 +127,20 @@ func (h *ocHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldapserver
 	}
 
 	if bindSimplePw == "" {
-		logger.Debugf("ldap anonymous bind request")
+		logger.Debug("ldap anonymous bind request")
 		if bindDN == "" {
 			return ldap.LDAPResultSuccess, nil
 		} else {
 			return ldap.LDAPResultUnwillingToPerform, nil
 		}
 	} else {
-		logger.Debugf("ldap bind request")
+		logger.Debug("ldap bind request")
 	}
 
 	baseDN := strings.ToLower("," + h.options.BaseDN)
 	parts := strings.Split(strings.TrimSuffix(bindDN, baseDN), ",")
 	if len(parts) > 2 {
-		logger.WithField("numparts", len(parts)).Debugf("BindDN should have only one or two parts")
+		logger.WithField("numparts", len(parts)).Debug("BindDN should have only one or two parts")
 		return ldap.LDAPResultInvalidCredentials, nil
 	}
 	username := strings.TrimPrefix(parts[0], "cn=")
@@ -199,7 +171,6 @@ func (h *ocHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldapserver
 
 func (h *ocHandler) Search(bindDN string, searchReq *ldap.SearchRequest, conn net.Conn) (ldapserver.ServerSearchResult, error) {
 	bindDN = strings.ToLower(bindDN)
-	baseDN := strings.ToLower("," + h.options.BaseDN)
 	searchBaseDN := strings.ToLower(searchReq.BaseDN)
 	logger := h.logger.WithFields(logrus.Fields{
 		"bind_dn":        bindDN,
@@ -218,126 +189,98 @@ func (h *ocHandler) Search(bindDN string, searchReq *ldap.SearchRequest, conn ne
 		}, err
 	}
 
-	filterEntity, err := ldapserver.GetFilterObjectClass(searchReq.Filter)
-	if err != nil {
-		return ldapserver.ServerSearchResult{ResultCode: ldap.LDAPResultOperationsError}, fmt.Errorf("search error: error parsing filter: %s", searchReq.Filter)
-	}
-
 	entries := []*ldap.Entry{}
-	switch filterEntity {
-	default:
-		return ldapserver.ServerSearchResult{ResultCode: ldap.LDAPResultOperationsError}, fmt.Errorf("search error: unhandled filter type: %s [%s]", filterEntity, searchReq.Filter)
-	case "posixgroup":
-		/*
-			groups, err := h.getGroups()
-			if err != nil {
-				return ldapserver.ServerSearchResult{ResultCode: ldap.LDAPResultOperationsError}, errors.New("search error: error getting groups")
-			}
-			for _, g := range groups {
-				attrs := []*ldap.EntryAttribute{}
-				attrs = append(attrs, &ldap.EntryAttribute{Name: "cn", Values: []string{*g.ID}})
-				attrs = append(attrs, &ldap.EntryAttribute{Name: "description", Values: []string{fmt.Sprintf("%s from ownCloud", *g.ID)}})
-				//			attrs = append(attrs, &ldap.EntryAttribute{"gidNumber", []string{fmt.Sprintf("%d", g.UnixID)}})
-				attrs = append(attrs, &ldap.EntryAttribute{Name: "objectClass", Values: []string{"posixGroup"}})
-				if g.Members != nil {
-					members := make([]string, len(g.Members))
-					for i, v := range g.Members {
-						members[i] = *v.ID
-					}
-
-					attrs = append(attrs, &ldap.EntryAttribute{Name: "memberUid", Values: members})
-				}
-				dn := fmt.Sprintf("cn=%s,%s=groups,%s", *g.ID, h.options.GroupFormat, h.options.BaseDN)
-				entries = append(entries, &ldap.Entry{DN: dn, Attributes: attrs})
-			}
-		*/
-	case "posixaccount", "":
-		userName := ""
-		if searchBaseDN != strings.ToLower(h.options.BaseDN) {
-			parts := strings.Split(strings.TrimSuffix(searchBaseDN, baseDN), ",")
-			if len(parts) >= 1 {
-				userName = strings.TrimPrefix(parts[0], "cn=")
-			}
+	objectclasses, conditionsSQL, values, err := h.parseFilterToSQLFragments(searchReq.Filter)
+	if err != nil {
+		return ldapserver.ServerSearchResult{
+			ResultCode: ldap.LDAPResultOperationsError,
+		}, err
+	}
+	objectclass := ""
+	for i := range objectclasses {
+		if objectclass == "" {
+			objectclass = objectclasses[i]
+		} else if objectclasses[i] != objectclass {
+			return ldapserver.ServerSearchResult{
+				ResultCode: ldap.LDAPResultUnwillingToPerform,
+			}, fmt.Errorf("search error: only one type of objectclass supported")
 		}
-		if userName != "" {
-			a, err := h.GetAccountByUsername(h.ctx, userName)
-			if err != nil {
-				return ldapserver.ServerSearchResult{ResultCode: ldap.LDAPResultOperationsError}, errors.Wrapf(err, "search error: error getting account '%s'", userName)
-			}
-			e, err := h.accountToEntry(h.ctx, a)
-			if err != nil {
-				return ldapserver.ServerSearchResult{ResultCode: ldap.LDAPResultOperationsError}, fmt.Errorf("search error: error mapping account to entry")
-			}
-			entries = append(entries, e)
+	}
+
+	selectSQL := "SELECT id, email, user_id, display_name, quota, last_login, backend, home, state"
+	whereSQL := ""
+	if conditionsSQL != "" {
+		whereSQL = " WHERE " + conditionsSQL
+	}
+
+	switch objectclass {
+	case "posixaccount", "person", "organizationalperson", "inetorgperson":
+		fromSQL := " FROM oc_accounts"
+		if h.options.JoinUsername {
+			selectSQL += ", p.configvalue AS username"
+			fromSQL += `LEFT JOIN oc_preferences p
+							ON a.user_id=p.userid
+							AND p.appid='core'
+							AND p.configkey='username'`
 		} else {
-			return ldapserver.ServerSearchResult{ResultCode: ldap.LDAPResultNotSupported}, nil
-
+			// fallback to user_id as username
+			selectSQL += ", user_id AS username"
 		}
-	}
-	return ldapserver.ServerSearchResult{Entries: entries, Referrals: []string{}, Controls: []ldap.Control{}, ResultCode: ldap.LDAPResultSuccess}, nil
-}
+		if h.options.JoinUUID {
+			selectSQL += ", p2.configvalue AS ownclouduuid"
+			fromSQL += `LEFT JOIN oc_preferences p2
+							ON a.user_id=p2.userid
+							AND p2.appid='core'
+							AND p2.configkey='ownclouduuid'`
+		} else {
+			// fallback to user_id as ownclouduuid
+			selectSQL += ", user_id AS ownclouduuid"
+		}
+		query := selectSQL + fromSQL + whereSQL
+		rows, err := h.db.Query(query, values...)
+		if err != nil {
+			return ldapserver.ServerSearchResult{ResultCode: ldap.LDAPResultOperationsError}, err
+		}
+		defer rows.Close()
 
-// Account stores information about accounts.
-type Account struct {
-	ID           uint64
-	Email        sql.NullString
-	UserID       string
-	DisplayName  sql.NullString
-	Quota        sql.NullString
-	LastLogin    int
-	Backend      string
-	Home         string
-	State        int8
-	PasswordHash string         // from oc_users
-	Username     sql.NullString // optional comes from the oc_preferences
-	OwnCloudUUID sql.NullString // optional comes from the oc_preferences
-}
+		for rows.Next() {
+			a, err := h.rowToAccount(h.ctx, rows)
+			if err != nil {
+				// log error and continue
+				logger.WithError(err).Error("could not convert row to account")
+				continue
+			}
+			entry, err := h.accountToEntry(h.ctx, a)
+			if err != nil {
+				// log error and continue
+				logger.WithError(err).Error("could not convert account to entry")
+				continue
+			}
 
-func (h *ocHandler) accountToEntry(ctx context.Context, a *Account) (*ldap.Entry, error) {
-	attrs := []*ldap.EntryAttribute{}
-	attrs = append(attrs, &ldap.EntryAttribute{Name: "cn", Values: []string{a.Username.String}})
-	attrs = append(attrs, &ldap.EntryAttribute{Name: "uid", Values: []string{a.UserID}})
-	attrs = append(attrs, &ldap.EntryAttribute{Name: "ownclouduuid", Values: []string{a.OwnCloudUUID.String}})
-	if a.DisplayName.Valid {
-		attrs = append(attrs, &ldap.EntryAttribute{Name: "givenName", Values: []string{a.DisplayName.String}})
-	}
-	if a.Email.Valid {
-		attrs = append(attrs, &ldap.EntryAttribute{Name: "mail", Values: []string{a.Email.String}})
-	}
+			// Filter attributes from entry.
+			// we do not build a special select query, because it would also require different row.Scan calls
+			resultCode, err := ldapserver.ServerFilterAttributes(searchReq.Attributes, entry)
+			if err != nil {
+				return ldapserver.ServerSearchResult{
+					ResultCode: resultCode,
+				}, err
+			}
 
-	attrs = append(attrs, &ldap.EntryAttribute{Name: "objectClass", Values: []string{"posixAccount"}})
+			entries = append(entries, entry)
+		}
+		return ldapserver.ServerSearchResult{Entries: entries, Referrals: []string{}, Controls: []ldap.Control{}, ResultCode: ldap.LDAPResultSuccess}, nil
 
-	attrs = append(attrs, &ldap.EntryAttribute{Name: "description", Values: []string{fmt.Sprintf("%s from ownCloud", a.OwnCloudUUID.String)}})
-	//dn := fmt.Sprintf("%s=%s,%s=%s,%s", h.options.NameFormat, *u.ID, h.options.GroupFormat, "users", h.options.BaseDN)
-	dn := fmt.Sprintf("%s=%s,%s=%s,%s", "cn", a.Username.String, "cn", "users", h.options.BaseDN)
-	return &ldap.Entry{DN: dn, Attributes: attrs}, nil
-}
-func (h *ocHandler) rowToAccount(ctx context.Context, row Scannable) (*Account, error) {
-	a := Account{}
-	if err := row.Scan(&a.ID, &a.Email, &a.UserID, &a.DisplayName, &a.Quota, &a.LastLogin, &a.Backend, &a.Home, &a.State, &a.Username, &a.OwnCloudUUID); err != nil {
-		//appctx.GetLogger(ctx).Error().Err(err).Msg("could not scan row, skipping")
-		return nil, err
-	}
-
-	return &a, nil
-}
-
-// Scannable describes the interface providing a Scan method
-type Scannable interface {
-	Scan(...interface{}) error
-}
-
-// GetAccountByLogin fetches an account by mail or username
-func (h *ocHandler) GetAccountByUsername(ctx context.Context, login string) (*Account, error) {
-	var row *sql.Row
-	username := strings.ToLower(login) // usernames are lowercased in owncloud classic
-	if h.options.JoinUsername {
-		row = h.db.QueryRowContext(ctx, h.selectSQL+" WHERE a.lower_user_id=? OR p.configvalue=?", username, login)
-	} else {
-		row = h.db.QueryRowContext(ctx, h.selectSQL+" WHERE a.lower_user_id=?", username)
+	case "group":
+		//fromSQL := " FROM oc_groups"
+		return ldapserver.ServerSearchResult{
+			ResultCode: ldap.LDAPResultUnwillingToPerform,
+		}, fmt.Errorf("search error: only 'person' objectclass supported")
+	default:
+		return ldapserver.ServerSearchResult{
+			ResultCode: ldap.LDAPResultUnwillingToPerform,
+		}, fmt.Errorf("search error: only 'person' or 'group' objectclass supported")
 	}
 
-	return h.rowToAccount(ctx, row)
 }
 
 func (h *ocHandler) Close(bindDN string, conn net.Conn) error {
