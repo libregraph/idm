@@ -29,6 +29,8 @@ var (
 	DefaultLogLevel      = "info"
 	DefaultSystemdNotify = false
 
+	DefaultLDAPHandler = "ldif"
+
 	DefaultLDAPListenAddr  = "127.0.0.1:10389"
 	DefaultLDAPSListenAddr = ""
 
@@ -139,6 +141,7 @@ func CommandServe() *cobra.Command {
 	serveCmd.Flags().StringVar(&DefaultLogLevel, "log-level", DefaultLogLevel, "Log level (one of panic, fatal, error, warn, info or debug)")
 	serveCmd.Flags().BoolVar(&DefaultSystemdNotify, "systemd-notify", DefaultSystemdNotify, "Enable systemd sd_notify callback")
 
+	serveCmd.Flags().StringVar(&DefaultLDAPHandler, "ldap-handler", DefaultLDAPHandler, "Name of handler to use, currently only	'ldif'")
 	serveCmd.Flags().StringVar(&DefaultLDAPListenAddr, "ldap-listen", DefaultLDAPListenAddr, "TCP listen address for LDAP requests")
 	serveCmd.Flags().StringVar(&DefaultLDAPSListenAddr, "ldaps-listen", DefaultLDAPSListenAddr, "TCP listen address for LDAPS requests")
 
@@ -206,6 +209,8 @@ func (bs *bootstrap) configure(ctx context.Context, cmd *cobra.Command, args []s
 
 	cfg := &server.Config{
 		Logger: logger,
+
+		LDAPHandler: DefaultLDAPHandler,
 
 		LDAPListenAddr:  DefaultLDAPListenAddr,
 		LDAPSListenAddr: DefaultLDAPSListenAddr,
