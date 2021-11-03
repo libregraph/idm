@@ -40,28 +40,33 @@ func NewServer(c *Config) (*Server, error) {
 		logger: c.Logger,
 	}
 
-	ldifHandlerOptions := &ldif.Options{
-		BaseDN:                  s.config.LDAPBaseDN,
-		AllowLocalAnonymousBind: s.config.LDAPAllowLocalAnonymousBind,
-
-		DefaultCompany:    s.config.LDIFDefaultCompany,
-		DefaultMailDomain: s.config.LDIFDefaultMailDomain,
-		TemplateExtraVars: s.config.LDIFTemplateExtraVars,
-
-		TemplateDebug: os.Getenv("KIDM_TEMPLATE_DEBUG") != "",
-	}
-
 	var err error
-	s.LDAPHandler, err = ldif.NewLDIFHandler(s.logger, s.config.LDIFMain, ldifHandlerOptions)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create LDIF source handler: %w", err)
-	}
-	if s.config.LDIFConfig != "" {
-		middleware, middlewareErr := ldif.NewLDIFMiddleware(s.logger, s.config.LDIFConfig, ldifHandlerOptions)
-		if middlewareErr != nil {
-			return nil, fmt.Errorf("failed to create LDIF config handler: %w", middlewareErr)
+	switch c.LDAPHandler {
+	case "ldif":
+		ldifHandlerOptions := &ldif.Options{
+			BaseDN:                  s.config.LDAPBaseDN,
+			AllowLocalAnonymousBind: s.config.LDAPAllowLocalAnonymousBind,
+
+			DefaultCompany:    s.config.LDIFDefaultCompany,
+			DefaultMailDomain: s.config.LDIFDefaultMailDomain,
+			TemplateExtraVars: s.config.LDIFTemplateExtraVars,
+
+			TemplateDebug: os.Getenv("KIDM_TEMPLATE_DEBUG") != "",
 		}
-		s.LDAPHandler = middleware.WithHandler(s.LDAPHandler)
+
+		s.LDAPHandler, err = ldif.NewLDIFHandler(s.logger, s.config.LDIFMain, ldifHandlerOptions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create LDIF source handler: %w", err)
+		}
+		if s.config.LDIFConfig != "" {
+			middleware, middlewareErr := ldif.NewLDIFMiddleware(s.logger, s.config.LDIFConfig, ldifHandlerOptions)
+			if middlewareErr != nil {
+				return nil, fmt.Errorf("failed to create LDIF config handler: %w", middlewareErr)
+			}
+			s.LDAPHandler = middleware.WithHandler(s.LDAPHandler)
+		}
+	default:
+		return nil, fmt.Errorf("unknown LDAPHandler: '%s'", c.LDAPHandler)
 	}
 
 	s.LDAPServer = ldapserver.NewServer()
