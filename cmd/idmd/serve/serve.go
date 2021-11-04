@@ -40,6 +40,7 @@ var (
 	DefaultLDAPBaseDN                  = ""
 	DefaultLDAPAllowLocalAnonymousBind = false
 
+	DefaultBoltDBFile = "idmbolt.db"
 	DefaultLDIFMain   = ""
 	DefaultLDIFConfig = ""
 
@@ -67,6 +68,10 @@ func setDefaults() {
 	DefaultLDIFMain = os.Getenv(withEnvBase("DEFAULT_LDIF_MAIN_PATH"))
 	DefaultLDIFConfig = os.Getenv(withEnvBase("DEFAULT_LDIF_CONFIG_PATH"))
 
+	envDefaultBoltDBFile := os.Getenv(withEnvBase("DEFAULT_BOLTDB_FILE"))
+	if envDefaultBoltDBFile != "" {
+		DefaultBoltDBFile = envDefaultBoltDBFile
+	}
 	envDefaultLDAPBaseDN := os.Getenv(withEnvBase("DEFAULT_LDAP_BASEDN"))
 	if envDefaultLDAPBaseDN != "" {
 		DefaultLDAPBaseDN = envDefaultLDAPBaseDN
@@ -151,6 +156,8 @@ func CommandServe() *cobra.Command {
 	serveCmd.Flags().StringVar(&DefaultLDAPBaseDN, "ldap-base-dn", DefaultLDAPBaseDN, "BaseDN for LDAP requests")
 	serveCmd.Flags().BoolVar(&DefaultLDAPAllowLocalAnonymousBind, "ldap-allow-local-anonymous", DefaultLDAPAllowLocalAnonymousBind, "Allow anonymous LDAP bind for all local LDAP clients")
 
+	serveCmd.Flags().StringVar(&DefaultBoltDBFile, "boltdb-file", DefaultBoltDBFile, "Filename of the database for the BoltDB Handler")
+
 	serveCmd.Flags().StringVar(&DefaultLDIFMain, "ldif-main", DefaultLDIFMain, "Path to a LDIF file or .d folder containing LDIF files")
 	serveCmd.Flags().StringVar(&DefaultLDIFConfig, "ldif-config", DefaultLDIFConfig, "Path to a LDIF file for entries used only for bind")
 
@@ -226,6 +233,8 @@ func (bs *bootstrap) configure(ctx context.Context, cmd *cobra.Command, args []s
 
 		LDIFDefaultCompany:    DefaultLDIFCompany,
 		LDIFDefaultMailDomain: DefaultLDIFMailDomain,
+
+		BoltDBFile: DefaultBoltDBFile,
 
 		OnReady: func(srv *server.Server) {
 			if DefaultSystemdNotify {

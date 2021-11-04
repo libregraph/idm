@@ -19,6 +19,7 @@ import (
 
 	"github.com/libregraph/idm/pkg/ldapserver"
 	"github.com/libregraph/idm/server/handler"
+	"github.com/libregraph/idm/server/handler/boltdb"
 	"github.com/libregraph/idm/server/handler/ldif"
 )
 
@@ -39,6 +40,9 @@ func NewServer(c *Config) (*Server, error) {
 
 		logger: c.Logger,
 	}
+
+	s.LDAPServer = ldapserver.NewServer()
+	s.LDAPServer.EnforceLDAP = false
 
 	var err error
 	switch c.LDAPHandler {
@@ -65,12 +69,21 @@ func NewServer(c *Config) (*Server, error) {
 			}
 			s.LDAPHandler = middleware.WithHandler(s.LDAPHandler)
 		}
+	case "boltdb":
+		boltOptions := &boltdb.Options{
+			BaseDN:                  s.config.LDAPBaseDN,
+			AllowLocalAnonymousBind: s.config.LDAPAllowLocalAnonymousBind,
+		}
+		s.LDAPHandler, err = boltdb.NewBoltDBHandler(s.logger, s.config.BoltDBFile, boltOptions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create BoltDB handler: %w", err)
+		}
+
+		// FIXME Let the frontend (LDAPServer) handle filtering and attribute list until we added backend support
+		s.LDAPServer.EnforceLDAP = true
 	default:
 		return nil, fmt.Errorf("unknown LDAPHandler: '%s'", c.LDAPHandler)
 	}
-
-	s.LDAPServer = ldapserver.NewServer()
-	s.LDAPServer.EnforceLDAP = false
 
 	if c.Metrics != nil {
 		s.LDAPServer.SetStats(true)
