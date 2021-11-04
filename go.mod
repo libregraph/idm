@@ -20,6 +20,8 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/test-go/testify v1.1.4 // indirect
 	github.com/trustelem/zxcvbn v1.0.1
+	go.etcd.io/bbolt v1.3.2
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
+	golang.org/x/text v0.3.3
 	stash.kopano.io/kgol/rndm v1.1.1
 )

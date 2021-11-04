@@ -25,6 +25,8 @@ type Config struct {
 	LDAPBaseDN                  string
 	LDAPAllowLocalAnonymousBind bool
 
+	BoltDBFile string
+
 	LDIFMain   string
 	LDIFConfig string
 
