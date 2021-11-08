@@ -49,7 +49,7 @@ func (bdb *LdbBolt) Configure(logger logrus.FieldLogger, baseDN, dbfile string) 
 	}
 	bdb.db = db
 	dn, _ := ldap.ParseDN(baseDN)
-	bdb.base = normalizeDN(dn)
+	bdb.base = NormalizeDN(dn)
 	return nil
 }
 
@@ -81,7 +81,7 @@ func (bdb *LdbBolt) Initialize() error {
 // While formally some RDN attributes could be casesensitive
 // maybe we should just skip the DN parsing and just casefold
 // the entire DN string?
-func normalizeDN(dn *ldap.DN) string {
+func NormalizeDN(dn *ldap.DN) string {
 	var nDN string
 	caseFold := cases.Fold()
 	for r, rdn := range dn.RDNs {
@@ -107,7 +107,7 @@ func normalizeDN(dn *ldap.DN) string {
 func (bdb *LdbBolt) Search(base string, scope int) ([]*ldap.Entry, error) {
 	entries := []*ldap.Entry{}
 	dn, _ := ldap.ParseDN(base)
-	nDN := normalizeDN(dn)
+	nDN := NormalizeDN(dn)
 
 	err := bdb.db.View(func(tx *bolt.Tx) error {
 		entryID := bdb.GetIDByDN(tx, nDN)
@@ -183,13 +183,13 @@ func (bdb *LdbBolt) EntryPut(e *ldap.Entry) error {
 	parentDN := &ldap.DN{
 		RDNs: dn.RDNs[1:],
 	}
-	nDN := normalizeDN(dn)
+	nDN := NormalizeDN(dn)
 
 	if !strings.HasSuffix(nDN, bdb.base) {
 		return fmt.Errorf("'%s' is not a descendant of '%s'", e.DN, bdb.base)
 	}
 
-	nParentDN := normalizeDN(parentDN)
+	nParentDN := NormalizeDN(parentDN)
 	err := bdb.db.Update(func(tx *bolt.Tx) error {
 		id2entry := tx.Bucket([]byte("id2entry"))
 		id := bdb.GetIDByDN(tx, nDN)
