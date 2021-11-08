@@ -15,6 +15,7 @@ import (
 	"github.com/go-ldap/ldap/v3"
 	"github.com/sirupsen/logrus"
 
+	"github.com/libregraph/idm/pkg/ldappassword"
 	"github.com/libregraph/idm/pkg/ldapserver"
 	"github.com/libregraph/idm/pkg/ldbbolt"
 	"github.com/libregraph/idm/server/handler"
@@ -79,7 +80,66 @@ func (h *boltdbHandler) setup() error {
 }
 
 func (h *boltdbHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldapserver.LDAPResultCode, error) {
-	return ldap.LDAPResultSuccess, nil
+	logger := h.logger.WithFields(logrus.Fields{
+		"op":          "bind",
+		"bind_dn":     bindDN,
+		"remote_addr": conn.RemoteAddr().String(),
+	})
+
+	// Handle anoymous bind
+	if bindDN == "" {
+		if !h.allowLocalAnonymousBind {
+			logger.Debugln("ldap anonymous Bind disabled")
+			return ldap.LDAPResultInvalidCredentials, nil
+		} else if bindSimplePw == "" {
+			return ldap.LDAPResultSuccess, nil
+		}
+	}
+
+	dn, err := ldap.ParseDN(bindDN)
+	if err != nil {
+		logger.WithError(err).Debugln("ldap bind request BindDN validation failed")
+		return ldap.LDAPResultInvalidDNSyntax, nil
+	}
+	bindDN = ldbbolt.NormalizeDN(dn)
+
+	if !strings.HasSuffix(bindDN, h.baseDN) {
+		logger.WithError(err).Debugln("ldap bind request BindDN outside of Database tree")
+		return ldap.LDAPResultInvalidCredentials, nil
+	}
+
+	// Disallow empty password
+	if bindSimplePw == "" {
+		logger.Debugf("BindDN without password")
+		return ldap.LDAPResultInvalidCredentials, nil
+	}
+
+	return h.validatePassword(logger, bindDN, bindSimplePw)
+}
+
+func (h *boltdbHandler) validatePassword(logger logrus.FieldLogger, bindDN, bindSimplePw string) (ldapserver.LDAPResultCode, error) {
+	// Lookup Bind DN in database
+	entries, err := h.bdb.Search(bindDN, ldap.ScopeBaseObject)
+	if err != nil || len(entries) != 1 {
+		if err != nil {
+			logger.Error(err)
+		}
+		if len(entries) != 1 {
+			logger.Debugf("Entry '%s' does not exist", bindDN)
+		}
+		return ldap.LDAPResultInvalidCredentials, nil
+	}
+	userPassword := entries[0].GetAttributeValue("userPassword")
+	match, err := ldappassword.Validate(bindSimplePw, userPassword)
+	if err != nil {
+		logger.Error(err)
+		return ldap.LDAPResultInvalidCredentials, nil
+	}
+	if match {
+		logger.Debug("success")
+		return ldap.LDAPResultSuccess, nil
+	}
+	return ldap.LDAPResultInvalidCredentials, nil
 }
 
 func (h *boltdbHandler) Search(boundDN string, req *ldap.SearchRequest, conn net.Conn) (ldapserver.ServerSearchResult, error) {
