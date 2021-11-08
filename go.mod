@@ -9,8 +9,8 @@ require (
 	github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310
 	github.com/coreos/go-systemd/v22 v22.3.0
 	github.com/dlclark/regexp2 v1.4.0 // indirect
-	github.com/go-asn1-ber/asn1-ber v1.5.1
-	github.com/go-ldap/ldap/v3 v3.2.4
+	github.com/go-asn1-ber/asn1-ber v1.5.3
+	github.com/go-ldap/ldap/v3 v3.4.1
 	github.com/go-ldap/ldif v0.0.0-20200320164324-fd88d9b715b3
 	github.com/orcaman/concurrent-map v0.0.0-20210106121528-16402b402231
 	github.com/prometheus/client_golang v0.9.3
@@ -20,5 +20,6 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/test-go/testify v1.1.4 // indirect
 	github.com/trustelem/zxcvbn v1.0.1
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
 	stash.kopano.io/kgol/rndm v1.1.1
 )
