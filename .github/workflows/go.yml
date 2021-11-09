@@ -1,0 +1,50 @@
+name: Go
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+
+    - name: Bootstrap
+      run: go version
+
+    - name: Vendor
+      run: make vendor
+
+    - name: Lint
+      uses: golangci/golangci-lint-action@v2
+      with:
+        version: v1.38.0
+        skip-pkg-cache: true
+        skip-build-cache: true
+        skip-go-installation: true
+        #only-new-issues: true
+        args: --issues-exit-code=0 
+
+    - name: Build
+      run: | 
+        make DATE=reproducible
+        ./bin/idmd version && sha256sum ./bin/idmd
+
+    - name: Test
+      run: make test-xml-short
+
+    - name: Dist
+      run: |
+        test -z "$(git diff --shortstat 2>/dev/null |tail -n1)" && echo "Clean check passed."
+        make check
+        make dist
+
