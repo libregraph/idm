@@ -34,20 +34,22 @@ import (
 )
 
 type LdbBolt struct {
-	logger logrus.FieldLogger
-	db     *bolt.DB
-	base   string
+	logger  logrus.FieldLogger
+	db      *bolt.DB
+	options *bolt.Options
+	base    string
 }
 
-func (bdb *LdbBolt) Configure(logger logrus.FieldLogger, baseDN, dbfile string) error {
+func (bdb *LdbBolt) Configure(logger logrus.FieldLogger, baseDN, dbfile string, options *bolt.Options) error {
 	bdb.logger = logger
 	logger.Debugf("Open boltdb %s", dbfile)
-	db, err := bolt.Open(dbfile, 0o600, nil)
+	db, err := bolt.Open(dbfile, 0o600, options)
 	if err != nil {
 		bdb.logger.WithError(err).Error("Error opening database")
 		return err
 	}
 	bdb.db = db
+	bdb.options = options
 	dn, _ := ldap.ParseDN(baseDN)
 	bdb.base = NormalizeDN(dn)
 	return nil
@@ -56,24 +58,27 @@ func (bdb *LdbBolt) Configure(logger logrus.FieldLogger, baseDN, dbfile string) 
 // Initialize() opens the Database file and create the required buckets if they do not
 // exist yet. After calling initialize the database is ready to process transactions
 func (bdb *LdbBolt) Initialize() error {
-	bdb.logger.Debug("Adding default buckets")
-	err := bdb.db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("dn2id"))
+	var err error
+	if bdb.options == nil || !bdb.options.ReadOnly {
+		bdb.logger.Debug("Adding default buckets")
+		err = bdb.db.Update(func(tx *bolt.Tx) error {
+			_, err = tx.CreateBucketIfNotExists([]byte("dn2id"))
+			if err != nil {
+				return fmt.Errorf("create bucket 'dn2id': %w", err)
+			}
+			_, err = tx.CreateBucketIfNotExists([]byte("id2children"))
+			if err != nil {
+				return fmt.Errorf("create bucket 'dn2id': %w", err)
+			}
+			_, err = tx.CreateBucketIfNotExists([]byte("id2entry"))
+			if err != nil {
+				return fmt.Errorf("create bucket 'id2entry': %w", err)
+			}
+			return nil
+		})
 		if err != nil {
-			return fmt.Errorf("create bucket 'dn2id': %w", err)
+			bdb.logger.WithError(err).Error("Error creating default buckets")
 		}
-		_, err = tx.CreateBucketIfNotExists([]byte("id2children"))
-		if err != nil {
-			return fmt.Errorf("create bucket 'dn2id': %w", err)
-		}
-		_, err = tx.CreateBucketIfNotExists([]byte("id2entry"))
-		if err != nil {
-			return fmt.Errorf("create bucket 'id2entry': %w", err)
-		}
-		return nil
-	})
-	if err != nil {
-		bdb.logger.WithError(err).Error("Error creating default buckets")
 	}
 	return err
 }

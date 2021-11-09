@@ -68,7 +68,7 @@ func NewBoltDBHandler(logger logrus.FieldLogger, fn string, options *Options) (h
 func (h *boltdbHandler) setup() error {
 	bdb := &ldbbolt.LdbBolt{}
 
-	if err := bdb.Configure(h.logger, h.baseDN, h.dbfile); err != nil {
+	if err := bdb.Configure(h.logger, h.baseDN, h.dbfile, nil); err != nil {
 		return err
 	}
 
