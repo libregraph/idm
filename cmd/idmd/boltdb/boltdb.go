@@ -15,10 +15,10 @@ import (
 )
 
 var (
-	BoltDBFile string
-	LDAPBaseDN string
-	LogLevel   string
-	InputFile  string
+	BoltDBFile = ""
+	LDAPBaseDN = ""
+	LogLevel   = "info"
+	InputFile  = ""
 )
 
 func CommandBoltDB() *cobra.Command {
