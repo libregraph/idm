@@ -12,7 +12,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/go-asn1-ber/asn1-ber"
+	ber "github.com/go-asn1-ber/asn1-ber"
 	"github.com/go-ldap/ldap/v3"
 )
 
@@ -124,6 +124,7 @@ func (server *Server) Serve(ln net.Listener) error {
 				}
 				break
 			}
+			log.Printf("New Connection on %s", ln.Addr())
 			newConn <- conn
 		}
 	}()

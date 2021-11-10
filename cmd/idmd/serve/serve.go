@@ -29,7 +29,11 @@ var (
 	DefaultLogLevel      = "info"
 	DefaultSystemdNotify = false
 
-	DefaultLDAPListenAddr = "127.0.0.1:10389"
+	DefaultLDAPListenAddr  = "127.0.0.1:10389"
+	DefaultLDAPSListenAddr = ""
+
+	DefaultTLSCertFile = ""
+	DefaultTLSKeyFile  = ""
 
 	DefaultLDAPBaseDN                  = ""
 	DefaultLDAPAllowLocalAnonymousBind = false
@@ -71,6 +75,21 @@ func setDefaults() {
 		DefaultLDAPListenAddr = envDefaultLDAPListenAddr
 	}
 
+	envDefaultLDAPSListenAddr := os.Getenv(withEnvBase("DEFAULT_LDAPS_LISTEN"))
+	if envDefaultLDAPSListenAddr != "" {
+		DefaultLDAPSListenAddr = envDefaultLDAPSListenAddr
+	}
+
+	envDefaultTLSCertFile := os.Getenv(withEnvBase("DEFAULT_TLS_CERT_FILE"))
+	if envDefaultTLSCertFile != "" {
+		DefaultTLSCertFile = envDefaultTLSCertFile
+	}
+
+	envDefaultTLSKeyFile := os.Getenv(withEnvBase("DEFAULT_TLS_KEY_FILE"))
+	if envDefaultTLSKeyFile != "" {
+		DefaultTLSKeyFile = envDefaultTLSKeyFile
+	}
+
 	envDefaultLDIFCompany := os.Getenv(withEnvBase("DEFAULT_LDIF_TEMPLATE_COMPANY"))
 	if envDefaultLDIFCompany != "" {
 		DefaultLDIFCompany = envDefaultLDIFCompany
@@ -92,6 +111,17 @@ func CommandServe() *cobra.Command {
 	serveCmd := &cobra.Command{
 		Use:   "serve [...args]",
 		Short: "Start service",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			if err := checkTLSConfig(cmd, args); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				var exitCodeErr *ErrorWithExitCode
+				if errors.As(err, &exitCodeErr) {
+					os.Exit(exitCodeErr.Code)
+				} else {
+					os.Exit(1)
+				}
+			}
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := serve(cmd, args); err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -110,6 +140,11 @@ func CommandServe() *cobra.Command {
 	serveCmd.Flags().BoolVar(&DefaultSystemdNotify, "systemd-notify", DefaultSystemdNotify, "Enable systemd sd_notify callback")
 
 	serveCmd.Flags().StringVar(&DefaultLDAPListenAddr, "ldap-listen", DefaultLDAPListenAddr, "TCP listen address for LDAP requests")
+	serveCmd.Flags().StringVar(&DefaultLDAPSListenAddr, "ldaps-listen", DefaultLDAPSListenAddr, "TCP listen address for LDAPS requests")
+
+	serveCmd.Flags().StringVar(&DefaultTLSCertFile, "tls-cert-file", DefaultTLSCertFile, "Server Certificate to use for LDAPS connections")
+	serveCmd.Flags().StringVar(&DefaultTLSKeyFile, "tls-key-file", DefaultTLSKeyFile, "Server Certificate Key to use for LDAPS connections")
+
 	serveCmd.Flags().StringVar(&DefaultLDAPBaseDN, "ldap-base-dn", DefaultLDAPBaseDN, "BaseDN for LDAP requests")
 	serveCmd.Flags().BoolVar(&DefaultLDAPAllowLocalAnonymousBind, "ldap-allow-local-anonymous", DefaultLDAPAllowLocalAnonymousBind, "Allow anonymous LDAP bind for all local LDAP clients")
 
@@ -126,6 +161,17 @@ func CommandServe() *cobra.Command {
 	serveCmd.Flags().StringVar(&DefaultMetricsListenAddr, "metrics-listen", DefaultMetricsListenAddr, "TCP listen address for metrics")
 
 	return serveCmd
+}
+
+func checkTLSConfig(_ *cobra.Command, _ []string) error {
+	if DefaultLDAPSListenAddr != "" {
+		if DefaultTLSCertFile == "" {
+			return fmt.Errorf("LDAPS listener is enabled. Please specify a Certifcate File")
+		} else if DefaultTLSKeyFile == "" {
+			return fmt.Errorf("LDAPS listener is enabled. Please specify a Certifcate Key File")
+		}
+	}
+	return nil
 }
 
 func serve(cmd *cobra.Command, args []string) error {
@@ -161,7 +207,11 @@ func (bs *bootstrap) configure(ctx context.Context, cmd *cobra.Command, args []s
 	cfg := &server.Config{
 		Logger: logger,
 
-		LDAPListenAddr: DefaultLDAPListenAddr,
+		LDAPListenAddr:  DefaultLDAPListenAddr,
+		LDAPSListenAddr: DefaultLDAPSListenAddr,
+
+		TLSCertFile: DefaultTLSCertFile,
+		TLSKeyFile:  DefaultTLSKeyFile,
 
 		LDAPBaseDN:                  DefaultLDAPBaseDN,
 		LDAPAllowLocalAnonymousBind: DefaultLDAPAllowLocalAnonymousBind,
