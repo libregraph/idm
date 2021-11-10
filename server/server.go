@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"sync"
@@ -101,11 +100,6 @@ func (s *Server) Serve(ctx context.Context) error {
 		logger.WithFields(logrus.Fields{}).Infoln("ready")
 	}()
 
-	ldapListener, listenErr := net.Listen("tcp", s.config.LDAPListenAddr)
-	if listenErr != nil {
-		return fmt.Errorf("failed to create LDAP listener: %w", listenErr)
-	}
-
 	var serversWg sync.WaitGroup
 
 	// NOTE(longsleep): ldap package uses standard logger. Set standard logger
@@ -138,15 +132,28 @@ func (s *Server) Serve(ctx context.Context) error {
 		}
 	}()
 
-	serversWg.Add(1)
-	go func(l net.Listener) {
-		defer serversWg.Done()
-		logger.WithField("listen_addr", l.Addr()).Infoln("LDAP listener started")
-		serveErr := s.LDAPServer.Serve(l)
-		if serveErr != nil {
-			errCh <- serveErr
-		}
-	}(ldapListener)
+	if s.config.LDAPListenAddr != "" {
+		serversWg.Add(1)
+		go func() {
+			defer serversWg.Done()
+			logger.WithField("listen_addr", s.config.LDAPListenAddr).Infoln("starting LDAP listener")
+			serveErr := s.LDAPServer.ListenAndServe(s.config.LDAPListenAddr)
+			if serveErr != nil {
+				errCh <- serveErr
+			}
+		}()
+	}
+	if s.config.LDAPSListenAddr != "" {
+		serversWg.Add(1)
+		go func() {
+			defer serversWg.Done()
+			logger.WithField("listen_addr_tls", s.config.LDAPSListenAddr).Infoln("starting LDAPS listener")
+			serveErr := s.LDAPServer.ListenAndServeTLS(s.config.LDAPSListenAddr, s.config.TLSCertFile, s.config.TLSKeyFile)
+			if serveErr != nil {
+				errCh <- serveErr
+			}
+		}()
+	}
 
 	go func() {
 		serversWg.Wait()

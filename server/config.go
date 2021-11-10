@@ -14,7 +14,11 @@ import (
 type Config struct {
 	Logger logrus.FieldLogger
 
-	LDAPListenAddr string
+	LDAPListenAddr  string
+	LDAPSListenAddr string
+
+	TLSCertFile string
+	TLSKeyFile  string
 
 	LDAPBaseDN                  string
 	LDAPAllowLocalAnonymousBind bool
