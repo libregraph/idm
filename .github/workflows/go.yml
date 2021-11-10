@@ -27,12 +27,11 @@ jobs:
     - name: Lint
       uses: golangci/golangci-lint-action@v2
       with:
-        version: v1.38.0
+        version: latest
         skip-pkg-cache: true
         skip-build-cache: true
         skip-go-installation: true
-        #only-new-issues: true
-        args: --issues-exit-code=0 
+        only-new-issues: true
 
     - name: Build
       run: | 
