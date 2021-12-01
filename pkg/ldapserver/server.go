@@ -16,6 +16,9 @@ import (
 	"github.com/go-ldap/ldap/v3"
 )
 
+type Adder interface {
+	Add(boundDN string, req *ldap.AddRequest, conn net.Conn) (LDAPResultCode, error)
+}
 type Binder interface {
 	Bind(bindDN, bindSimplePw string, conn net.Conn) (LDAPResultCode, error)
 }
@@ -27,6 +30,7 @@ type Closer interface {
 }
 
 type Server struct {
+	AddFns      map[string]Adder
 	BindFns     map[string]Binder
 	SearchFns   map[string]Searcher
 	CloseFns    map[string]Closer
@@ -47,6 +51,7 @@ func NewServer() *Server {
 	s.Quit = make(chan bool)
 
 	d := defaultHandler{}
+	s.AddFns = make(map[string]Adder)
 	s.BindFns = make(map[string]Binder)
 	s.SearchFns = make(map[string]Searcher)
 	s.CloseFns = make(map[string]Closer)
@@ -55,6 +60,9 @@ func NewServer() *Server {
 	s.CloseFunc("", d)
 	s.Stats = nil
 	return s
+}
+func (server *Server) AddFunc(baseDN string, f Adder) {
+	server.AddFns[baseDN] = f
 }
 func (server *Server) BindFunc(baseDN string, f Binder) {
 	server.BindFns[baseDN] = f
@@ -199,6 +207,18 @@ handler:
 			}
 			log.Printf("Unhandled operation: %s [%d]", ldap.ApplicationMap[uint8(req.Tag)], req.Tag)
 			break handler
+
+		case ldap.ApplicationAddRequest:
+			server.Stats.countAdds(1)
+			ldapResultCode := ldap.LDAPResultUnwillingToPerform
+			if boundDN == "" {
+				ldapResultCode = ldap.LDAPResultInsufficientAccessRights
+			}
+			responsePacket := encodeLDAPResponse(messageID, ldap.ApplicationAddResponse, LDAPResultCode(ldapResultCode), "")
+			if err = sendPacket(conn, responsePacket); err != nil {
+				log.Printf("sendPacket error %s", err.Error())
+				break handler
+			}
 
 		case ldap.ApplicationBindRequest:
 			server.Stats.countBinds(1)
