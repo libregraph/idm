@@ -13,6 +13,7 @@ type Stats struct {
 	Conns        uint64
 	ConnsCurrent uint64
 	ConnsMax     uint64
+	Adds         uint64
 	Binds        uint64
 	Unbinds      uint64
 	Searches     uint64
@@ -36,6 +37,14 @@ func (stats *Stats) countConnsClose(delta uint64) {
 		stats.statsMutex.Lock()
 		stats.ConnsCurrent -= delta
 		stats.statsMutex.Unlock()
+	}
+}
+
+func (stats *Stats) countAdds(delta uint64) {
+	if stats != nil {
+		stats.statsMutex.Lock()
+		stats.Adds += delta
+		stats.statsMutex.Lock()
 	}
 }
 
@@ -70,6 +79,7 @@ func (stats *Stats) Clone() *Stats {
 		stats.statsMutex.RLock()
 		s2.Conns = stats.Conns
 		s2.ConnsCurrent = stats.ConnsCurrent
+		s2.Adds = stats.Adds
 		s2.Binds = stats.Binds
 		s2.Unbinds = stats.Unbinds
 		s2.Searches = stats.Searches
