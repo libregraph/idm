@@ -11,8 +11,6 @@ linters-settings:
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
-  golint:
-    min-confidence: 0
   gocyclo:
     min-complexity: 10
   maligned:
@@ -33,6 +31,8 @@ linters-settings:
       - performance
       - style
       - experimental
+  revive:
+    min-confidence: 0
 
 linters:
   # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
@@ -42,6 +42,7 @@ linters:
     - deadcode
     - dupl
     - errcheck
+    - exportloopref
     - funlen
     - gochecknoinits
     - goconst
@@ -49,16 +50,14 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    - golint
     - gosec
     - gosimple
     - govet
     - ineffassign
-    - interfacer
     - lll
     - misspell
     - nakedret
-    - scopelint
+    - revive
     - staticcheck
     - structcheck
     - stylecheck
@@ -72,3 +71,6 @@ linters:
   # - depguard - until https://github.com/OpenPeeDeeP/depguard/issues/7 gets fixed
   # - maligned,prealloc
   # - gochecknoglobals
+
+severity:
+  default-severity: warning
