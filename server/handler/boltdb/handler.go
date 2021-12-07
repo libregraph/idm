@@ -80,8 +80,23 @@ func (h *boltdbHandler) setup() error {
 	return nil
 }
 
-func (h *boltdbHandler) Add(_ string, _ *ldap.AddRequest, _ net.Conn) (ldapserver.LDAPResultCode, error) {
-	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
+func (h *boltdbHandler) Add(boundDN string, req *ldap.AddRequest, conn net.Conn) (ldapserver.LDAPResultCode, error) {
+	logger := h.logger.WithFields(logrus.Fields{
+		"op":          "add",
+		"bind_dn":     boundDN,
+		"remote_addr": conn.RemoteAddr().String(),
+	})
+
+	e := ldapserver.EntryFromAddRequest(req)
+
+	if err := h.bdb.EntryPut(e); err != nil {
+		logger.WithError(err).WithField("entrydn", e.DN).Debugln("ldap add failed")
+		if errors.Is(err, ldbbolt.ErrEntryAlreadyExists) {
+			return ldap.LDAPResultEntryAlreadyExists, nil
+		}
+		return ldap.LDAPResultUnwillingToPerform, err
+	}
+	return ldap.LDAPResultSuccess, nil
 }
 
 func (h *boltdbHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldapserver.LDAPResultCode, error) {

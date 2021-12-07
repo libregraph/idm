@@ -218,7 +218,9 @@ handler:
 				var lErr *ldap.Error
 				if errors.As(err, &lErr) {
 					resultCode = lErr.ResultCode
-					resultMsg = lErr.Err.Error()
+					if lErr.Err != nil {
+						resultMsg = lErr.Err.Error()
+					}
 				} else {
 					resultCode = ldap.LDAPResultOperationsError
 					resultMsg = err.Error()
