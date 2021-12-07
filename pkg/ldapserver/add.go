@@ -118,3 +118,12 @@ func parseAttributeValues(values *ber.Packet) ([]string, error) {
 	}
 	return strVals, nil
 }
+
+func EntryFromAddRequest(add *ldap.AddRequest) *ldap.Entry {
+	attrs := map[string][]string{}
+
+	for _, a := range add.Attributes {
+		attrs[a.Type] = a.Vals
+	}
+	return ldap.NewEntry(add.DN, attrs)
+}
