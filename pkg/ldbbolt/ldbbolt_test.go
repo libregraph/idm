@@ -2,6 +2,7 @@ package ldbbolt
 
 import (
 	"encoding/binary"
+	"errors"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -65,6 +66,12 @@ func TestEntryPutSingle(t *testing.T) {
 	// adding base entry succeeds
 	if err := bdb.EntryPut(baseEntry); err != nil {
 		t.Fatalf("Adding correct base entry should succeed. Got error:%s", err)
+	}
+
+	// adding the same entry again fails
+	err := bdb.EntryPut(baseEntry)
+	if err == nil || !errors.Is(err, ErrEntryAlreadyExists) {
+		t.Fatalf("Adding the same entry	twice should fail with %v, got: %v", ErrEntryAlreadyExists, err)
 	}
 
 	// adding entry without parent fails

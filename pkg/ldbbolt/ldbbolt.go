@@ -24,6 +24,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -39,6 +40,8 @@ type LdbBolt struct {
 	options *bolt.Options
 	base    string
 }
+
+var ErrEntryAlreadyExists = errors.New("entry already exists")
 
 func (bdb *LdbBolt) Configure(logger logrus.FieldLogger, baseDN, dbfile string, options *bolt.Options) error {
 	bdb.logger = logger
@@ -198,11 +201,12 @@ func (bdb *LdbBolt) EntryPut(e *ldap.Entry) error {
 	err := bdb.db.Update(func(tx *bolt.Tx) error {
 		id2entry := tx.Bucket([]byte("id2entry"))
 		id := bdb.GetIDByDN(tx, nDN)
-		if id == 0 {
-			var err error
-			if id, err = id2entry.NextSequence(); err != nil {
-				return err
-			}
+		if id != 0 {
+			return ErrEntryAlreadyExists
+		}
+		var err error
+		if id, err = id2entry.NextSequence(); err != nil {
+			return err
 		}
 
 		if err := id2entry.Put(idToBytes(id), buf.Bytes()); err != nil {
