@@ -7,6 +7,7 @@ package boltdb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"path/filepath"
@@ -77,6 +78,10 @@ func (h *boltdbHandler) setup() error {
 	}
 	h.bdb = bdb
 	return nil
+}
+
+func (h *boltdbHandler) Add(_ string, _ *ldap.AddRequest, _ net.Conn) (ldapserver.LDAPResultCode, error) {
+	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
 }
 
 func (h *boltdbHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldapserver.LDAPResultCode, error) {

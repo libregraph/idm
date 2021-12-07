@@ -7,6 +7,7 @@ package ldif
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"path/filepath"
@@ -125,6 +126,10 @@ func (h *ldifMiddleware) Reload(ctx context.Context) error {
 	}
 
 	return h.next.Reload(ctx)
+}
+
+func (h *ldifMiddleware) Add(_ string, _ *ldap.AddRequest, _ net.Conn) (ldapserver.LDAPResultCode, error) {
+	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
 }
 
 func (h *ldifMiddleware) Bind(bindDN, bindSimplePw string, conn net.Conn) (resultCode ldapserver.LDAPResultCode, err error) {
