@@ -160,6 +160,10 @@ func (h *ldifHandler) Reload(ctx context.Context) error {
 	return h.open()
 }
 
+func (h *ldifHandler) Add(_ string, _ *ldap.AddRequest, _ net.Conn) (ldapserver.LDAPResultCode, error) {
+	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
+}
+
 func (h *ldifHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldapserver.LDAPResultCode, error) {
 	bindDN = strings.ToLower(bindDN)
 
