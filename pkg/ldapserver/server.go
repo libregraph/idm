@@ -7,6 +7,7 @@ package ldapserver
 
 import (
 	"crypto/tls"
+	"errors"
 	"io"
 	"log"
 	"net"
@@ -210,11 +211,21 @@ handler:
 
 		case ldap.ApplicationAddRequest:
 			server.Stats.countAdds(1)
-			ldapResultCode := ldap.LDAPResultUnwillingToPerform
-			if boundDN == "" {
-				ldapResultCode = ldap.LDAPResultInsufficientAccessRights
+
+			resultCode := uint16(ldap.LDAPResultSuccess)
+			resultMsg := ""
+			if err = HandleAddRequest(req, boundDN, server, conn); err != nil {
+				var lErr *ldap.Error
+				if errors.As(err, &lErr) {
+					resultCode = lErr.ResultCode
+					resultMsg = lErr.Err.Error()
+				} else {
+					resultCode = ldap.LDAPResultOperationsError
+					resultMsg = err.Error()
+				}
 			}
-			responsePacket := encodeLDAPResponse(messageID, ldap.ApplicationAddResponse, LDAPResultCode(ldapResultCode), "")
+
+			responsePacket := encodeLDAPResponse(messageID, ldap.ApplicationAddResponse, LDAPResultCode(resultCode), resultMsg)
 			if err = sendPacket(conn, responsePacket); err != nil {
 				log.Printf("sendPacket error %s", err.Error())
 				break handler
