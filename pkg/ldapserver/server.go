@@ -23,6 +23,9 @@ type Adder interface {
 type Binder interface {
 	Bind(bindDN, bindSimplePw string, conn net.Conn) (LDAPResultCode, error)
 }
+type Deleter interface {
+	Delete(boundDN string, req *ldap.DelRequest, conn net.Conn) (LDAPResultCode, error)
+}
 type Searcher interface {
 	Search(boundDN string, req *ldap.SearchRequest, conn net.Conn) (ServerSearchResult, error)
 }
@@ -33,6 +36,7 @@ type Closer interface {
 type Server struct {
 	AddFns      map[string]Adder
 	BindFns     map[string]Binder
+	DeleteFns   map[string]Deleter
 	SearchFns   map[string]Searcher
 	CloseFns    map[string]Closer
 	Quit        chan bool
@@ -54,6 +58,7 @@ func NewServer() *Server {
 	d := defaultHandler{}
 	s.AddFns = make(map[string]Adder)
 	s.BindFns = make(map[string]Binder)
+	s.DeleteFns = make(map[string]Deleter)
 	s.SearchFns = make(map[string]Searcher)
 	s.CloseFns = make(map[string]Closer)
 	s.BindFunc("", d)
@@ -67,6 +72,9 @@ func (server *Server) AddFunc(baseDN string, f Adder) {
 }
 func (server *Server) BindFunc(baseDN string, f Binder) {
 	server.BindFns[baseDN] = f
+}
+func (server *Server) DeleteFunc(baseDN string, f Deleter) {
+	server.DeleteFns[baseDN] = f
 }
 func (server *Server) SearchFunc(baseDN string, f Searcher) {
 	server.SearchFns[baseDN] = f
@@ -248,6 +256,30 @@ handler:
 				log.Printf("sendPacket error %s", err.Error())
 				break handler
 			}
+
+		case ldap.ApplicationDelRequest:
+			server.Stats.countDeletes(1)
+			resultCode := uint16(ldap.LDAPResultSuccess)
+			resultMsg := ""
+			if err = HandleDeleteRequest(req, boundDN, server, conn); err != nil {
+				var lErr *ldap.Error
+				if errors.As(err, &lErr) {
+					resultCode = lErr.ResultCode
+					if lErr.Err != nil {
+						resultMsg = lErr.Err.Error()
+					}
+				} else {
+					resultCode = ldap.LDAPResultOperationsError
+					resultMsg = err.Error()
+				}
+			}
+
+			responsePacket := encodeLDAPResponse(messageID, ldap.ApplicationDelResponse, LDAPResultCode(resultCode), resultMsg)
+			if err = sendPacket(conn, responsePacket); err != nil {
+				log.Printf("sendPacket error %s", err.Error())
+				break handler
+			}
+
 		case ldap.ApplicationSearchRequest:
 			server.Stats.countSearches(1)
 			if doneControls, err := HandleSearchRequest(req, &controls, messageID, boundDN, server, conn); err != nil {
