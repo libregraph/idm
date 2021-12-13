@@ -15,6 +15,7 @@ type Stats struct {
 	ConnsMax     uint64
 	Adds         uint64
 	Binds        uint64
+	Deletes      uint64
 	Unbinds      uint64
 	Searches     uint64
 	statsMutex   sync.RWMutex
@@ -56,6 +57,14 @@ func (stats *Stats) countBinds(delta uint64) {
 	}
 }
 
+func (stats *Stats) countDeletes(delta uint64) {
+	if stats != nil {
+		stats.statsMutex.Lock()
+		stats.Deletes += delta
+		stats.statsMutex.Unlock()
+	}
+}
+
 func (stats *Stats) countUnbinds(delta uint64) {
 	if stats != nil {
 		stats.statsMutex.Lock()
@@ -81,6 +90,7 @@ func (stats *Stats) Clone() *Stats {
 		s2.ConnsCurrent = stats.ConnsCurrent
 		s2.Adds = stats.Adds
 		s2.Binds = stats.Binds
+		s2.Deletes = stats.Deletes
 		s2.Unbinds = stats.Unbinds
 		s2.Searches = stats.Searches
 		stats.statsMutex.RUnlock()
