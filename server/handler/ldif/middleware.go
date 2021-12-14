@@ -165,6 +165,10 @@ func (h *ldifMiddleware) Bind(bindDN, bindSimplePw string, conn net.Conn) (resul
 	return h.next.Bind(bindDN, bindSimplePw, conn)
 }
 
+func (h *ldifMiddleware) Delete(_ string, _ *ldap.DelRequest, _ net.Conn) (ldapserver.LDAPResultCode, error) {
+	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
+}
+
 func (h *ldifMiddleware) Search(bindDN string, searchReq *ldap.SearchRequest, conn net.Conn) (result ldapserver.ServerSearchResult, err error) {
 	return h.next.Search(bindDN, searchReq, conn)
 }
