@@ -1,6 +1,7 @@
 package ldbbolt
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"io/ioutil"
@@ -35,6 +36,13 @@ var userEntry = ldap.NewEntry("uid=user,ou=sub,o=base",
 		"mail":        {"user@example"},
 		"entryuuid":   {"abcd-defg"},
 	})
+var otherUserEntry = ldap.NewEntry("uid=user1,ou=sub,o=base",
+	map[string][]string{
+		"uid":         {"user1"},
+		"displayname": {"DisplayName"},
+		"mail":        {"user@example"},
+		"entryuuid":   {"abcd-defg"},
+	})
 
 func setupTestDB(t *testing.T) *LdbBolt {
 	bdb := &LdbBolt{}
@@ -51,6 +59,15 @@ func setupTestDB(t *testing.T) *LdbBolt {
 		t.Fatalf("Error initializing database %s", err)
 	}
 	return bdb
+}
+
+func addTestData(bdb *LdbBolt, t *testing.T) {
+	// add	sample data
+	for _, entry := range []*ldap.Entry{baseEntry, subEntry, userEntry, otherUserEntry} {
+		if err := bdb.EntryPut(entry); err != nil {
+			t.Fatalf("Failed to popluate test database: %s", err)
+		}
+	}
 }
 
 func TestEntryPutSingle(t *testing.T) {
@@ -91,7 +108,6 @@ func TestEntryPutMulti(t *testing.T) {
 			t.Fatalf("Adding more entries should succeed. Got error:%s", err)
 		}
 	}
-
 	_ = bdb.db.View(func(tx *bolt.Tx) error {
 		id2entry := tx.Bucket([]byte("id2entry"))
 		var i int
@@ -133,4 +149,85 @@ func TestEntryPutMulti(t *testing.T) {
 		}
 		return nil
 	})
+}
+
+func TestEntryDeleteFails(t *testing.T) {
+	bdb := setupTestDB(t)
+	defer os.Remove(bdb.db.Path())
+	defer bdb.Close()
+	addTestData(bdb, t)
+
+	// Deleting non existing entry fails
+	err := bdb.EntryDelete("cn=doesnotexist,ou=sub,o=base")
+	if err == nil || !errors.Is(err, ErrEntryNotFound) {
+		t.Errorf("Expected '%v' got: '%v'", ErrEntryNotFound, err)
+	}
+
+	// Deleting intermediate entry fails
+	err = bdb.EntryDelete("ou=sub,o=base")
+	if err == nil || !errors.Is(err, ErrNonLeafEntry) {
+		t.Errorf("Expected '%v' got: '%v'", ErrNonLeafEntry, err)
+	}
+}
+
+func TestEntryDeleteSucceeds(t *testing.T) {
+	bdb := setupTestDB(t)
+	defer os.Remove(bdb.db.Path())
+	defer bdb.Close()
+	addTestData(bdb, t)
+	// Get EntryID for later checks
+	var entryID uint64
+	_ = bdb.db.View(func(tx *bolt.Tx) error {
+		entryID = bdb.GetIDByDN(tx, "uid=user,ou=sub,o=base")
+		return nil
+	})
+
+	// Delete on an existing leaf entry succeeds
+	err := bdb.EntryDelete("uid=user,ou=sub,o=base")
+	if err != nil {
+		t.Errorf("Expected success got '%v'", err)
+	}
+	// Make sure it's really gone
+	// a) from dn2id
+	err = bdb.db.View(func(tx *bolt.Tx) error {
+		if id := bdb.GetIDByDN(tx, "uid=user,ou=sub,o=base"); id != 0 {
+			return errors.New("delete failed")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Errorf("Expected entry to be gone from dn2id bucket.")
+	}
+	// b) from id2entry
+	err = bdb.db.View(func(tx *bolt.Tx) error {
+		id2entry := tx.Bucket([]byte("id2entry"))
+		if e := id2entry.Get(idToBytes(entryID)); len(e) != 0 {
+			return errors.New("delete failed")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Errorf("Expected entry to be gone from id2entry bucket.")
+	}
+	// and c) from id2children values
+	_ = bdb.db.View(func(tx *bolt.Tx) error {
+		id2children := tx.Bucket([]byte("id2children"))
+		err = id2children.ForEach(func(id, v []byte) error {
+			r := bytes.NewReader(v)
+			ids := make([]uint64, len(v)/8)
+			if innerErr := binary.Read(r, binary.LittleEndian, &ids); innerErr != nil {
+				return innerErr
+			}
+			for _, id := range ids {
+				if id == entryID {
+					return errors.New("delete failed")
+				}
+			}
+			return nil
+		})
+		return err
+	})
+	if err != nil {
+		t.Errorf("Expected entry to be gone from values in id2children bucket.")
+	}
 }

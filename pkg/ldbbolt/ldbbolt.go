@@ -26,6 +26,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/go-ldap/ldap/v3"
@@ -41,7 +42,11 @@ type LdbBolt struct {
 	base    string
 }
 
-var ErrEntryAlreadyExists = errors.New("entry already exists")
+var (
+	ErrEntryAlreadyExists = errors.New("entry already exists")
+	ErrEntryNotFound      = errors.New("entry does not exist")
+	ErrNonLeafEntry       = errors.New("entry is not a leaf entry")
+)
 
 func (bdb *LdbBolt) Configure(logger logrus.FieldLogger, baseDN, dbfile string, options *bolt.Options) error {
 	bdb.logger = logger
@@ -221,6 +226,66 @@ func (bdb *LdbBolt) EntryPut(e *ldap.Entry) error {
 		if err := dn2id.Put([]byte(nDN), idToBytes(id)); err != nil {
 			return err
 		}
+		return nil
+	})
+	return err
+}
+
+func (bdb *LdbBolt) EntryDelete(dn string) error {
+	parsed, err := ldap.ParseDN(dn)
+	if err != nil {
+		return err
+	}
+	pparentDN := &ldap.DN{
+		RDNs: parsed.RDNs[1:],
+	}
+	pdn := NormalizeDN(pparentDN)
+
+	ndn := NormalizeDN(parsed)
+	err = bdb.db.Update(func(tx *bolt.Tx) error {
+		// Does this entry even exist?
+		entryID := bdb.GetIDByDN(tx, ndn)
+		if entryID == 0 {
+			return ErrEntryNotFound
+		}
+
+		// Refuse to delete if the entry has childs
+		id2Children := tx.Bucket([]byte("id2children"))
+		children := id2Children.Get(idToBytes(entryID))
+		if len(children) != 0 {
+			return ErrNonLeafEntry
+		}
+
+		// Update id2children bucket (remove entryid from parent)
+		parentid := bdb.GetIDByDN(tx, pdn)
+		if parentid == 0 {
+			return ErrEntryNotFound
+		}
+		children = id2Children.Get(idToBytes(parentid))
+		r := bytes.NewReader(children)
+		var newids []byte
+		idBytes := make([]byte, 8)
+		for _, err = io.ReadFull(r, idBytes); err == nil; _, err = io.ReadFull(r, idBytes) {
+			if entryID != binary.LittleEndian.Uint64(idBytes) {
+				newids = append(newids, idBytes...)
+			}
+		}
+		if err = id2Children.Put(idToBytes(parentid), newids); err != nil {
+			return fmt.Errorf("error updating id2Children index for %d: %w", parentid, err)
+		}
+
+		// Remove entry from dn2id bucket
+		dn2id := tx.Bucket([]byte("dn2id"))
+		err = dn2id.Delete([]byte(ndn))
+		if err != nil {
+			return err
+		}
+		id2entry := tx.Bucket([]byte("id2entry"))
+		err = id2entry.Delete(idToBytes(entryID))
+		if err != nil {
+			return err
+		}
+
 		return nil
 	})
 	return err

@@ -162,6 +162,23 @@ func (h *boltdbHandler) validatePassword(logger logrus.FieldLogger, bindDN, bind
 	return ldap.LDAPResultInvalidCredentials, nil
 }
 
+func (h *boltdbHandler) Delete(boundDN string, req *ldap.DelRequest, conn net.Conn) (ldapserver.LDAPResultCode, error) {
+	logger := h.logger.WithFields(logrus.Fields{
+		"op":          "add",
+		"bind_dn":     boundDN,
+		"remote_addr": conn.RemoteAddr().String(),
+	})
+
+	if err := h.bdb.EntryDelete(req.DN); err != nil {
+		logger.WithError(err).WithField("entrydn", req.DN).Debugln("ldap delete failed")
+		if errors.Is(err, ldbbolt.ErrEntryAlreadyExists) {
+			return ldap.LDAPResultEntryAlreadyExists, nil
+		}
+		return ldap.LDAPResultUnwillingToPerform, err
+	}
+	return ldap.LDAPResultSuccess, nil
+}
+
 func (h *boltdbHandler) Search(boundDN string, req *ldap.SearchRequest, conn net.Conn) (ldapserver.ServerSearchResult, error) {
 	h.logger.WithField("op", "search").Debug("start")
 
