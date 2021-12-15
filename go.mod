@@ -15,7 +15,7 @@ require (
 	github.com/orcaman/concurrent-map v0.0.0-20210106121528-16402b402231
 	github.com/prometheus/client_golang v1.11.0
 	github.com/sethvargo/go-password v0.2.0
-	github.com/sirupsen/logrus v1.6.0
+	github.com/sirupsen/logrus v1.8.1
 	github.com/spacewander/go-suffix-tree v0.0.0-20191010040751-0865e368c784
 	github.com/spf13/cobra v1.3.0
 	github.com/test-go/testify v1.1.4 // indirect
