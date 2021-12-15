@@ -6,7 +6,7 @@ require (
 	github.com/Songmu/prompter v0.5.0
 	github.com/alexedwards/argon2id v0.0.0-20210326052512-e2135f7c9c77
 	github.com/amoghe/go-crypt v0.0.0-20191109212615-b2ff80594b7f
-	github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310
+	github.com/armon/go-radix v1.0.0
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.3
@@ -17,12 +17,11 @@ require (
 	github.com/sethvargo/go-password v0.2.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spacewander/go-suffix-tree v0.0.0-20191010040751-0865e368c784
-	github.com/spf13/cobra v1.2.1
+	github.com/spf13/cobra v1.3.0
 	github.com/test-go/testify v1.1.4 // indirect
 	github.com/trustelem/zxcvbn v1.0.1
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
-	golang.org/x/sys v0.0.0-20211205182925-97ca703d548d // indirect
 	golang.org/x/text v0.3.7
 	stash.kopano.io/kgol/rndm v1.1.1
 )
