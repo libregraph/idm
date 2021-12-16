@@ -70,7 +70,7 @@ func parseAttributeList(req *ber.Packet) ([]ldap.Attribute, error) {
 	}
 
 	for _, a := range req.Children {
-		attr, err := parseAttribute(a)
+		attr, err := parseAttribute(a, false)
 		if err != nil {
 			return nil, err
 		}
@@ -80,12 +80,15 @@ func parseAttributeList(req *ber.Packet) ([]ldap.Attribute, error) {
 	return ldapAttrs, nil
 }
 
-func parseAttribute(attr *ber.Packet) (*ldap.Attribute, error) {
+func parseAttribute(attr *ber.Packet, partial bool) (*ldap.Attribute, error) {
 	var la ldap.Attribute
 	var ok bool
 	var err error
 
-	if len(attr.Children) != 2 {
+	// Partial attributes, might just contain a type and allow the Value to be absent
+	if partial && (len(attr.Children) < 1 || len(attr.Children) > 2) {
+		return nil, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("error decoding partial Attribute"))
+	} else if !partial && len(attr.Children) != 2 {
 		return nil, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("error decoding Attribute"))
 	}
 
@@ -98,6 +101,10 @@ func parseAttribute(attr *ber.Packet) (*ldap.Attribute, error) {
 		return nil, ldap.NewError(ldap.LDAPResultProtocolError, errors.New("error decoding Attribute Description"))
 	}
 
+	// We can return here if this is a Partial Attribute without values
+	if partial && len(attr.Children) == 1 {
+		return &la, nil
+	}
 	if la.Vals, err = parseAttributeValues(attr.Children[1]); err != nil {
 		return nil, err
 	}

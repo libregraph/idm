@@ -20,15 +20,23 @@ import (
 type Adder interface {
 	Add(boundDN string, req *ldap.AddRequest, conn net.Conn) (LDAPResultCode, error)
 }
+
 type Binder interface {
 	Bind(bindDN, bindSimplePw string, conn net.Conn) (LDAPResultCode, error)
 }
+
 type Deleter interface {
 	Delete(boundDN string, req *ldap.DelRequest, conn net.Conn) (LDAPResultCode, error)
 }
+
+type Modifier interface {
+	Modify(boundDN string, req *ldap.ModifyRequest, conn net.Conn) (LDAPResultCode, error)
+}
+
 type Searcher interface {
 	Search(boundDN string, req *ldap.SearchRequest, conn net.Conn) (ServerSearchResult, error)
 }
+
 type Closer interface {
 	Close(boundDN string, conn net.Conn) error
 }
@@ -37,6 +45,7 @@ type Server struct {
 	AddFns      map[string]Adder
 	BindFns     map[string]Binder
 	DeleteFns   map[string]Deleter
+	ModifyFns   map[string]Modifier
 	SearchFns   map[string]Searcher
 	CloseFns    map[string]Closer
 	Quit        chan bool
@@ -59,6 +68,7 @@ func NewServer() *Server {
 	s.AddFns = make(map[string]Adder)
 	s.BindFns = make(map[string]Binder)
 	s.DeleteFns = make(map[string]Deleter)
+	s.ModifyFns = make(map[string]Modifier)
 	s.SearchFns = make(map[string]Searcher)
 	s.CloseFns = make(map[string]Closer)
 	s.BindFunc("", d)
@@ -67,15 +77,23 @@ func NewServer() *Server {
 	s.Stats = nil
 	return s
 }
+
 func (server *Server) AddFunc(baseDN string, f Adder) {
 	server.AddFns[baseDN] = f
 }
+
 func (server *Server) BindFunc(baseDN string, f Binder) {
 	server.BindFns[baseDN] = f
 }
+
 func (server *Server) DeleteFunc(baseDN string, f Deleter) {
 	server.DeleteFns[baseDN] = f
 }
+
+func (server *Server) ModifyFunc(baseDN string, f Modifier) {
+	server.ModifyFns[baseDN] = f
+}
+
 func (server *Server) SearchFunc(baseDN string, f Searcher) {
 	server.SearchFns[baseDN] = f
 }
@@ -275,6 +293,28 @@ handler:
 			}
 
 			responsePacket := encodeLDAPResponse(messageID, ldap.ApplicationDelResponse, LDAPResultCode(resultCode), resultMsg)
+			if err = sendPacket(conn, responsePacket); err != nil {
+				log.Printf("sendPacket error %s", err.Error())
+				break handler
+			}
+
+		case ldap.ApplicationModifyRequest:
+			server.Stats.countModifies(1)
+			resultCode := uint16(ldap.LDAPResultSuccess)
+			resultMsg := ""
+			if err = HandleModifyRequest(req, boundDN, server, conn); err != nil {
+				var lErr *ldap.Error
+				if errors.As(err, &lErr) {
+					resultCode = lErr.ResultCode
+					if lErr.Err != nil {
+						resultMsg = lErr.Err.Error()
+					}
+				} else {
+					resultCode = ldap.LDAPResultOperationsError
+					resultMsg = err.Error()
+				}
+			}
+			responsePacket := encodeLDAPResponse(messageID, ldap.ApplicationModifyResponse, LDAPResultCode(resultCode), resultMsg)
 			if err = sendPacket(conn, responsePacket); err != nil {
 				log.Printf("sendPacket error %s", err.Error())
 				break handler

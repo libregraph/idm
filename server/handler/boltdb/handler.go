@@ -179,6 +179,10 @@ func (h *boltdbHandler) Delete(boundDN string, req *ldap.DelRequest, conn net.Co
 	return ldap.LDAPResultSuccess, nil
 }
 
+func (h *boltdbHandler) Modify(_ string, _ *ldap.ModifyRequest, _ net.Conn) (ldapserver.LDAPResultCode, error) {
+	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
+}
+
 func (h *boltdbHandler) Search(boundDN string, req *ldap.SearchRequest, conn net.Conn) (ldapserver.ServerSearchResult, error) {
 	h.logger.WithField("op", "search").Debug("start")
 

@@ -16,6 +16,7 @@ type Handler interface {
 	ldapserver.Adder
 	ldapserver.Binder
 	ldapserver.Deleter
+	ldapserver.Modifier
 	ldapserver.Searcher
 	ldapserver.Closer
 
