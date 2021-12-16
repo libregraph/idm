@@ -169,6 +169,10 @@ func (h *ldifMiddleware) Delete(_ string, _ *ldap.DelRequest, _ net.Conn) (ldaps
 	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
 }
 
+func (h *ldifMiddleware) Modify(_ string, _ *ldap.ModifyRequest, _ net.Conn) (ldapserver.LDAPResultCode, error) {
+	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
+}
+
 func (h *ldifMiddleware) Search(bindDN string, searchReq *ldap.SearchRequest, conn net.Conn) (result ldapserver.ServerSearchResult, err error) {
 	return h.next.Search(bindDN, searchReq, conn)
 }

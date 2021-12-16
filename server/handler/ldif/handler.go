@@ -209,6 +209,10 @@ func (h *ldifHandler) Delete(_ string, _ *ldap.DelRequest, _ net.Conn) (ldapserv
 	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
 }
 
+func (h *ldifHandler) Modify(_ string, _ *ldap.ModifyRequest, _ net.Conn) (ldapserver.LDAPResultCode, error) {
+	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
+}
+
 func (h *ldifHandler) Search(bindDN string, searchReq *ldap.SearchRequest, conn net.Conn) (ldapserver.ServerSearchResult, error) {
 	bindDN = strings.ToLower(bindDN)
 	searchBaseDN := strings.ToLower(searchReq.BaseDN)

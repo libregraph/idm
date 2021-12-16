@@ -16,6 +16,7 @@ type Stats struct {
 	Adds         uint64
 	Binds        uint64
 	Deletes      uint64
+	Modifies     uint64
 	Unbinds      uint64
 	Searches     uint64
 	statsMutex   sync.RWMutex
@@ -65,6 +66,14 @@ func (stats *Stats) countDeletes(delta uint64) {
 	}
 }
 
+func (stats *Stats) countModifies(delta uint64) {
+	if stats != nil {
+		stats.statsMutex.Lock()
+		stats.Modifies += delta
+		stats.statsMutex.Unlock()
+	}
+}
+
 func (stats *Stats) countUnbinds(delta uint64) {
 	if stats != nil {
 		stats.statsMutex.Lock()
@@ -91,6 +100,7 @@ func (stats *Stats) Clone() *Stats {
 		s2.Adds = stats.Adds
 		s2.Binds = stats.Binds
 		s2.Deletes = stats.Deletes
+		s2.Modifies = stats.Modifies
 		s2.Unbinds = stats.Unbinds
 		s2.Searches = stats.Searches
 		stats.statsMutex.RUnlock()
