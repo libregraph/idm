@@ -137,16 +137,12 @@ func (bdb *LdbBolt) Search(base string, scope int) ([]*ldap.Entry, error) {
 			entryIDs = append(entryIDs, entryID)
 			entryIDs = append(entryIDs, bdb.getSubtreeIDs(tx, entryID)...)
 		}
-		id2entry := tx.Bucket([]byte("id2entry"))
 		for _, id := range entryIDs {
-			entrybytes := id2entry.Get(idToBytes(id))
-			buf := bytes.NewBuffer(entrybytes)
-			dec := gob.NewDecoder(buf)
-			var entry ldap.Entry
-			if err := dec.Decode(&entry); err != nil {
-				return fmt.Errorf("error decoding entry id: %d, %w", id, err)
+			entry, err := bdb.getEntryByID(tx, id)
+			if err != nil {
+				return err
 			}
-			entries = append(entries, &entry)
+			entries = append(entries, entry)
 		}
 		return nil
 	})
@@ -325,6 +321,17 @@ func (bdb *LdbBolt) getIDByDN(tx *bolt.Tx, nDN string) uint64 {
 		return 0
 	}
 	return binary.LittleEndian.Uint64(id)
+}
+
+func (bdb *LdbBolt) getEntryByID(tx *bolt.Tx, id uint64) (entry *ldap.Entry, err error) {
+	id2entry := tx.Bucket([]byte("id2entry"))
+	entrybytes := id2entry.Get(idToBytes(id))
+	buf := bytes.NewBuffer(entrybytes)
+	dec := gob.NewDecoder(buf)
+	if err := dec.Decode(&entry); err != nil {
+		return nil, fmt.Errorf("error decoding entry id: %d, %w", id, err)
+	}
+	return entry, nil
 }
 
 func (bdb *LdbBolt) Close() {
