@@ -11,6 +11,8 @@ import (
 	"github.com/go-ldap/ldap/v3"
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
+
+	"github.com/libregraph/idm/pkg/ldapdn"
 )
 
 var logger = &logrus.Logger{
@@ -130,7 +132,7 @@ func TestEntryPutMulti(t *testing.T) {
 
 		// get id of leaf entry, this should not be present
 		// as a key in the id2children bucket. See test below.
-		dn, _ := NormalizeDN(userEntry.DN)
+		dn, _ := ldapdn.ParseNormalize(userEntry.DN)
 		leafID := dn2id.Get([]byte(dn))
 
 		i = 0

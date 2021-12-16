@@ -32,7 +32,8 @@ import (
 	"github.com/go-ldap/ldap/v3"
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
-	"golang.org/x/text/cases"
+
+	"github.com/libregraph/idm/pkg/ldapdn"
 )
 
 type LdbBolt struct {
@@ -58,7 +59,7 @@ func (bdb *LdbBolt) Configure(logger logrus.FieldLogger, baseDN, dbfile string, 
 	}
 	bdb.db = db
 	bdb.options = options
-	bdb.base, _ = NormalizeDN(baseDN)
+	bdb.base, _ = ldapdn.ParseNormalize(baseDN)
 	return nil
 }
 
@@ -90,43 +91,13 @@ func (bdb *LdbBolt) Initialize() error {
 	return err
 }
 
-// While formally some RDN attributes could be casesensitive
-// maybe we should just skip the DN parsing and just casefold
-// the entire DN string?
-func NormalizeParsedDN(dn *ldap.DN) string {
-	var nDN string
-	caseFold := cases.Fold()
-	for r, rdn := range dn.RDNs {
-		// FIXME to really normalize multivalued RDNs we'd need
-		// to normalize the order of Attributes here as well
-		for a, ava := range rdn.Attributes {
-			if a > 0 {
-				// This is a multivalued RDN.
-				nDN += "+"
-			} else if r > 0 {
-				nDN += ","
-			}
-			nDN = nDN + caseFold.String(ava.Type) + "=" + caseFold.String(ava.Value)
-		}
-	}
-	return nDN
-}
-
-func NormalizeDN(dn string) (string, error) {
-	parsed, err := ldap.ParseDN(dn)
-	if err != nil {
-		return "", err
-	}
-	return NormalizeParsedDN(parsed), nil
-}
-
 // Performs basic LDAP searches, using the dn2id and id2children buckets to generate
 // a list of Result entries. Currently this does strip of the non-request attribute
 // Neither does it support LDAP filters. For now we rely on the frontent (LDAPServer)
 // to both.
 func (bdb *LdbBolt) Search(base string, scope int) ([]*ldap.Entry, error) {
 	entries := []*ldap.Entry{}
-	nDN, err := NormalizeDN(base)
+	nDN, err := ldapdn.ParseNormalize(base)
 	if err != nil {
 		return entries, err
 	}
@@ -201,13 +172,13 @@ func (bdb *LdbBolt) EntryPut(e *ldap.Entry) error {
 	parentDN := &ldap.DN{
 		RDNs: dn.RDNs[1:],
 	}
-	nDN := NormalizeParsedDN(dn)
+	nDN := ldapdn.Normalize(dn)
 
 	if !strings.HasSuffix(nDN, bdb.base) {
 		return fmt.Errorf("'%s' is not a descendant of '%s'", e.DN, bdb.base)
 	}
 
-	nParentDN := NormalizeParsedDN(parentDN)
+	nParentDN := ldapdn.Normalize(parentDN)
 	err := bdb.db.Update(func(tx *bolt.Tx) error {
 		id2entry := tx.Bucket([]byte("id2entry"))
 		id := bdb.getIDByDN(tx, nDN)
@@ -244,9 +215,9 @@ func (bdb *LdbBolt) EntryDelete(dn string) error {
 	pparentDN := &ldap.DN{
 		RDNs: parsed.RDNs[1:],
 	}
-	pdn := NormalizeParsedDN(pparentDN)
+	pdn := ldapdn.Normalize(pparentDN)
 
-	ndn := NormalizeParsedDN(parsed)
+	ndn := ldapdn.Normalize(parsed)
 	err = bdb.db.Update(func(tx *bolt.Tx) error {
 		// Does this entry even exist?
 		entryID := bdb.getIDByDN(tx, ndn)

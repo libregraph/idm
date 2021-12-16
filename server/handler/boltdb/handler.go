@@ -16,6 +16,8 @@ import (
 	"github.com/go-ldap/ldap/v3"
 	"github.com/sirupsen/logrus"
 
+	"github.com/libregraph/idm/pkg/ldapdn"
+	"github.com/libregraph/idm/pkg/ldapentry"
 	"github.com/libregraph/idm/pkg/ldappassword"
 	"github.com/libregraph/idm/pkg/ldapserver"
 	"github.com/libregraph/idm/pkg/ldbbolt"
@@ -87,7 +89,7 @@ func (h *boltdbHandler) Add(boundDN string, req *ldap.AddRequest, conn net.Conn)
 		"remote_addr": conn.RemoteAddr().String(),
 	})
 
-	e := ldapserver.EntryFromAddRequest(req)
+	e := ldapentry.EntryFromAddRequest(req)
 
 	if err := h.bdb.EntryPut(e); err != nil {
 		logger.WithError(err).WithField("entrydn", e.DN).Debugln("ldap add failed")
@@ -116,7 +118,7 @@ func (h *boltdbHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldapse
 		}
 	}
 
-	bindDN, err := ldbbolt.NormalizeDN(bindDN)
+	bindDN, err := ldapdn.ParseNormalize(bindDN)
 	if err != nil {
 		logger.WithError(err).Debugln("ldap bind request BindDN validation failed")
 		return ldap.LDAPResultInvalidDNSyntax, nil
