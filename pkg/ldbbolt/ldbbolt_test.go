@@ -130,8 +130,8 @@ func TestEntryPutMulti(t *testing.T) {
 
 		// get id of leaf entry, this should not be present
 		// as a key in the id2children bucket. See test below.
-		dn, _ := ldap.ParseDN(userEntry.DN)
-		leafID := dn2id.Get([]byte(NormalizeDN(dn)))
+		dn, _ := NormalizeDN(userEntry.DN)
+		leafID := dn2id.Get([]byte(dn))
 
 		i = 0
 		id2children := tx.Bucket([]byte("id2children"))
