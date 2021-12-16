@@ -178,7 +178,7 @@ func TestEntryDeleteSucceeds(t *testing.T) {
 	// Get EntryID for later checks
 	var entryID uint64
 	_ = bdb.db.View(func(tx *bolt.Tx) error {
-		entryID = bdb.GetIDByDN(tx, "uid=user,ou=sub,o=base")
+		entryID = bdb.getIDByDN(tx, "uid=user,ou=sub,o=base")
 		return nil
 	})
 
@@ -190,7 +190,7 @@ func TestEntryDeleteSucceeds(t *testing.T) {
 	// Make sure it's really gone
 	// a) from dn2id
 	err = bdb.db.View(func(tx *bolt.Tx) error {
-		if id := bdb.GetIDByDN(tx, "uid=user,ou=sub,o=base"); id != 0 {
+		if id := bdb.getIDByDN(tx, "uid=user,ou=sub,o=base"); id != 0 {
 			return errors.New("delete failed")
 		}
 		return nil

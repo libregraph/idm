@@ -123,7 +123,7 @@ func (bdb *LdbBolt) Search(base string, scope int) ([]*ldap.Entry, error) {
 	nDN := NormalizeDN(dn)
 
 	err := bdb.db.View(func(tx *bolt.Tx) error {
-		entryID := bdb.GetIDByDN(tx, nDN)
+		entryID := bdb.getIDByDN(tx, nDN)
 		var entryIDs []uint64
 		if entryID == 0 {
 			return fmt.Errorf("not found")
@@ -132,10 +132,10 @@ func (bdb *LdbBolt) Search(base string, scope int) ([]*ldap.Entry, error) {
 		case ldap.ScopeBaseObject:
 			entryIDs = append(entryIDs, entryID)
 		case ldap.ScopeSingleLevel:
-			entryIDs = bdb.GetChildrenIDs(tx, entryID)
+			entryIDs = bdb.getChildrenIDs(tx, entryID)
 		case ldap.ScopeWholeSubtree:
 			entryIDs = append(entryIDs, entryID)
-			entryIDs = append(entryIDs, bdb.GetSubtreeIDs(tx, entryID)...)
+			entryIDs = append(entryIDs, bdb.getSubtreeIDs(tx, entryID)...)
 		}
 		id2entry := tx.Bucket([]byte("id2entry"))
 		for _, id := range entryIDs {
@@ -159,7 +159,7 @@ func idToBytes(id uint64) []byte {
 	return b
 }
 
-func (bdb *LdbBolt) GetChildrenIDs(tx *bolt.Tx, parent uint64) []uint64 {
+func (bdb *LdbBolt) getChildrenIDs(tx *bolt.Tx, parent uint64) []uint64 {
 	bdb.logger.Debugf("GetChildrenIDs '%d'", parent)
 	id2Children := tx.Bucket([]byte("id2children"))
 	children := id2Children.Get(idToBytes(parent))
@@ -172,13 +172,13 @@ func (bdb *LdbBolt) GetChildrenIDs(tx *bolt.Tx, parent uint64) []uint64 {
 	return ids
 }
 
-func (bdb *LdbBolt) GetSubtreeIDs(tx *bolt.Tx, root uint64) []uint64 {
+func (bdb *LdbBolt) getSubtreeIDs(tx *bolt.Tx, root uint64) []uint64 {
 	bdb.logger.Debugf("GetSubtreeIDs '%d'", root)
 	var res []uint64
-	children := bdb.GetChildrenIDs(tx, root)
+	children := bdb.getChildrenIDs(tx, root)
 	res = append(res, children...)
 	for _, child := range children {
-		res = append(res, bdb.GetSubtreeIDs(tx, child)...)
+		res = append(res, bdb.getSubtreeIDs(tx, child)...)
 	}
 	bdb.logger.Debugf("GetSubtreeIDs '%v'", res)
 	return res
@@ -205,7 +205,7 @@ func (bdb *LdbBolt) EntryPut(e *ldap.Entry) error {
 	nParentDN := NormalizeDN(parentDN)
 	err := bdb.db.Update(func(tx *bolt.Tx) error {
 		id2entry := tx.Bucket([]byte("id2entry"))
-		id := bdb.GetIDByDN(tx, nDN)
+		id := bdb.getIDByDN(tx, nDN)
 		if id != 0 {
 			return ErrEntryAlreadyExists
 		}
@@ -218,7 +218,7 @@ func (bdb *LdbBolt) EntryPut(e *ldap.Entry) error {
 			return err
 		}
 		if nDN != bdb.base {
-			if err := bdb.AddID2Children(tx, nParentDN, id); err != nil {
+			if err := bdb.addID2Children(tx, nParentDN, id); err != nil {
 				return err
 			}
 		}
@@ -244,7 +244,7 @@ func (bdb *LdbBolt) EntryDelete(dn string) error {
 	ndn := NormalizeDN(parsed)
 	err = bdb.db.Update(func(tx *bolt.Tx) error {
 		// Does this entry even exist?
-		entryID := bdb.GetIDByDN(tx, ndn)
+		entryID := bdb.getIDByDN(tx, ndn)
 		if entryID == 0 {
 			return ErrEntryNotFound
 		}
@@ -257,7 +257,7 @@ func (bdb *LdbBolt) EntryDelete(dn string) error {
 		}
 
 		// Update id2children bucket (remove entryid from parent)
-		parentid := bdb.GetIDByDN(tx, pdn)
+		parentid := bdb.getIDByDN(tx, pdn)
 		if parentid == 0 {
 			return ErrEntryNotFound
 		}
@@ -291,9 +291,9 @@ func (bdb *LdbBolt) EntryDelete(dn string) error {
 	return err
 }
 
-func (bdb *LdbBolt) AddID2Children(tx *bolt.Tx, nParentDN string, newChildID uint64) error {
+func (bdb *LdbBolt) addID2Children(tx *bolt.Tx, nParentDN string, newChildID uint64) error {
 	bdb.logger.Debugf("AddID2Children '%s' id '%d'", nParentDN, newChildID)
-	parentID := bdb.GetIDByDN(tx, nParentDN)
+	parentID := bdb.getIDByDN(tx, nParentDN)
 	if parentID == 0 {
 		return fmt.Errorf("parent not found '%s'", nParentDN)
 	}
@@ -313,7 +313,7 @@ func (bdb *LdbBolt) AddID2Children(tx *bolt.Tx, nParentDN string, newChildID uin
 	return nil
 }
 
-func (bdb *LdbBolt) GetIDByDN(tx *bolt.Tx, nDN string) uint64 {
+func (bdb *LdbBolt) getIDByDN(tx *bolt.Tx, nDN string) uint64 {
 	dn2id := tx.Bucket([]byte("dn2id"))
 	if dn2id == nil {
 		bdb.logger.Debugf("Bucket 'dn2id' does not exist")
