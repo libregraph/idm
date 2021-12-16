@@ -58,8 +58,7 @@ func (bdb *LdbBolt) Configure(logger logrus.FieldLogger, baseDN, dbfile string, 
 	}
 	bdb.db = db
 	bdb.options = options
-	dn, _ := ldap.ParseDN(baseDN)
-	bdb.base = NormalizeDN(dn)
+	bdb.base, _ = NormalizeDN(baseDN)
 	return nil
 }
 
@@ -94,7 +93,7 @@ func (bdb *LdbBolt) Initialize() error {
 // While formally some RDN attributes could be casesensitive
 // maybe we should just skip the DN parsing and just casefold
 // the entire DN string?
-func NormalizeDN(dn *ldap.DN) string {
+func NormalizeParsedDN(dn *ldap.DN) string {
 	var nDN string
 	caseFold := cases.Fold()
 	for r, rdn := range dn.RDNs {
@@ -113,16 +112,26 @@ func NormalizeDN(dn *ldap.DN) string {
 	return nDN
 }
 
+func NormalizeDN(dn string) (string, error) {
+	parsed, err := ldap.ParseDN(dn)
+	if err != nil {
+		return "", err
+	}
+	return NormalizeParsedDN(parsed), nil
+}
+
 // Performs basic LDAP searches, using the dn2id and id2children buckets to generate
 // a list of Result entries. Currently this does strip of the non-request attribute
 // Neither does it support LDAP filters. For now we rely on the frontent (LDAPServer)
 // to both.
 func (bdb *LdbBolt) Search(base string, scope int) ([]*ldap.Entry, error) {
 	entries := []*ldap.Entry{}
-	dn, _ := ldap.ParseDN(base)
-	nDN := NormalizeDN(dn)
+	nDN, err := NormalizeDN(base)
+	if err != nil {
+		return entries, err
+	}
 
-	err := bdb.db.View(func(tx *bolt.Tx) error {
+	err = bdb.db.View(func(tx *bolt.Tx) error {
 		entryID := bdb.getIDByDN(tx, nDN)
 		var entryIDs []uint64
 		if entryID == 0 {
@@ -192,13 +201,13 @@ func (bdb *LdbBolt) EntryPut(e *ldap.Entry) error {
 	parentDN := &ldap.DN{
 		RDNs: dn.RDNs[1:],
 	}
-	nDN := NormalizeDN(dn)
+	nDN := NormalizeParsedDN(dn)
 
 	if !strings.HasSuffix(nDN, bdb.base) {
 		return fmt.Errorf("'%s' is not a descendant of '%s'", e.DN, bdb.base)
 	}
 
-	nParentDN := NormalizeDN(parentDN)
+	nParentDN := NormalizeParsedDN(parentDN)
 	err := bdb.db.Update(func(tx *bolt.Tx) error {
 		id2entry := tx.Bucket([]byte("id2entry"))
 		id := bdb.getIDByDN(tx, nDN)
@@ -235,9 +244,9 @@ func (bdb *LdbBolt) EntryDelete(dn string) error {
 	pparentDN := &ldap.DN{
 		RDNs: parsed.RDNs[1:],
 	}
-	pdn := NormalizeDN(pparentDN)
+	pdn := NormalizeParsedDN(pparentDN)
 
-	ndn := NormalizeDN(parsed)
+	ndn := NormalizeParsedDN(parsed)
 	err = bdb.db.Update(func(tx *bolt.Tx) error {
 		// Does this entry even exist?
 		entryID := bdb.getIDByDN(tx, ndn)

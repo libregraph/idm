@@ -116,12 +116,11 @@ func (h *boltdbHandler) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldapse
 		}
 	}
 
-	dn, err := ldap.ParseDN(bindDN)
+	bindDN, err := ldbbolt.NormalizeDN(bindDN)
 	if err != nil {
 		logger.WithError(err).Debugln("ldap bind request BindDN validation failed")
 		return ldap.LDAPResultInvalidDNSyntax, nil
 	}
-	bindDN = ldbbolt.NormalizeDN(dn)
 
 	if !strings.HasSuffix(bindDN, h.baseDN) {
 		logger.WithError(err).Debugln("ldap bind request BindDN outside of Database tree")
