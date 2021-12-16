@@ -164,7 +164,7 @@ func (h *boltdbHandler) validatePassword(logger logrus.FieldLogger, bindDN, bind
 
 func (h *boltdbHandler) Delete(boundDN string, req *ldap.DelRequest, conn net.Conn) (ldapserver.LDAPResultCode, error) {
 	logger := h.logger.WithFields(logrus.Fields{
-		"op":          "add",
+		"op":          "delete",
 		"bind_dn":     boundDN,
 		"remote_addr": conn.RemoteAddr().String(),
 	})
