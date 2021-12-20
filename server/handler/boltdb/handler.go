@@ -180,8 +180,26 @@ func (h *boltdbHandler) Delete(boundDN string, req *ldap.DelRequest, conn net.Co
 	return ldap.LDAPResultSuccess, nil
 }
 
-func (h *boltdbHandler) Modify(_ string, _ *ldap.ModifyRequest, _ net.Conn) (ldapserver.LDAPResultCode, error) {
-	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
+func (h *boltdbHandler) Modify(boundDN string, req *ldap.ModifyRequest, conn net.Conn) (ldapserver.LDAPResultCode, error) {
+	logger := h.logger.WithFields(logrus.Fields{
+		"op":          "modify",
+		"bind_dn":     boundDN,
+		"remote_addr": conn.RemoteAddr().String(),
+	})
+
+	if err := h.bdb.EntryModify(req); err != nil {
+		logger.WithError(err).WithField("entrydn", req.DN).Debugln("ldap modify failed")
+		if errors.Is(err, ldbbolt.ErrEntryAlreadyExists) {
+			return ldap.LDAPResultEntryAlreadyExists, nil
+		}
+		ldapError, ok := err.(*ldap.Error)
+		if !ok {
+			return ldap.LDAPResultUnwillingToPerform, err
+		}
+		return ldapserver.LDAPResultCode(ldapError.ResultCode), ldapError.Err
+
+	}
+	return ldap.LDAPResultSuccess, nil
 }
 
 func (h *boltdbHandler) Search(boundDN string, req *ldap.SearchRequest, conn net.Conn) (ldapserver.ServerSearchResult, error) {

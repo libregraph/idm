@@ -34,6 +34,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/libregraph/idm/pkg/ldapdn"
+	"github.com/libregraph/idm/pkg/ldapentry"
 )
 
 type LdbBolt struct {
@@ -267,6 +268,35 @@ func (bdb *LdbBolt) EntryDelete(dn string) error {
 	return err
 }
 
+func (bdb *LdbBolt) EntryModify(req *ldap.ModifyRequest) error {
+	ndn, err := ldapdn.ParseNormalize(req.DN)
+	if err != nil {
+		return err
+	}
+	err = bdb.db.Update(func(tx *bolt.Tx) error {
+		oldEntry, id, innerErr := bdb.getEntryByDN(tx, ndn)
+		if innerErr != nil {
+			return innerErr
+		}
+		newEntry, innerErr := ldapentry.ApplyModify(oldEntry, req)
+		if innerErr != nil {
+			return innerErr
+		}
+		var buf bytes.Buffer
+		enc := gob.NewEncoder(&buf)
+		if innerErr := enc.Encode(newEntry); innerErr != nil {
+			return innerErr
+		}
+		id2entry := tx.Bucket([]byte("id2entry"))
+		if innerErr := id2entry.Put(idToBytes(id), buf.Bytes()); innerErr != nil {
+			return innerErr
+		}
+
+		return nil
+	})
+	return err
+}
+
 func (bdb *LdbBolt) addID2Children(tx *bolt.Tx, nParentDN string, newChildID uint64) error {
 	bdb.logger.Debugf("AddID2Children '%s' id '%d'", nParentDN, newChildID)
 	parentID := bdb.getIDByDN(tx, nParentDN)
@@ -312,6 +342,15 @@ func (bdb *LdbBolt) getEntryByID(tx *bolt.Tx, id uint64) (entry *ldap.Entry, err
 		return nil, fmt.Errorf("error decoding entry id: %d, %w", id, err)
 	}
 	return entry, nil
+}
+
+func (bdb *LdbBolt) getEntryByDN(tx *bolt.Tx, ndn string) (entry *ldap.Entry, id uint64, err error) {
+	id = bdb.getIDByDN(tx, ndn)
+	if id == 0 {
+		return nil, id, ErrEntryNotFound
+	}
+	entry, err = bdb.getEntryByID(tx, id)
+	return entry, id, err
 }
 
 func (bdb *LdbBolt) Close() {
