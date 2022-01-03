@@ -128,3 +128,17 @@ func TestApplyModifyReplace(t *testing.T) {
 		t.Errorf("Replace attribute value failed")
 	}
 }
+
+func TestDropEntryAttribute(t *testing.T) {
+	e := EntryDropAttribute(userEntry, "displayName")
+	if len(e.GetEqualFoldAttributeValues("displayName")) != 0 {
+		t.Errorf("Attribute does still exist after delete")
+	}
+	e = EntryDropAttribute(userEntry, "doesnotexist")
+	if len(e.GetEqualFoldAttributeValues("doesnotexist")) != 0 {
+		t.Errorf("Dropping non existing Attribute failed")
+	}
+	if len(e.GetEqualFoldAttributeValues("displayName")) != 1 {
+		t.Errorf("Dropping non existing Attribute failed")
+	}
+}

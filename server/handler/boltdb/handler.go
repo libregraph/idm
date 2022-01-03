@@ -207,8 +207,15 @@ func (h *boltdbHandler) Search(boundDN string, req *ldap.SearchRequest, conn net
 
 	entries, _ := h.bdb.Search(req.BaseDN, req.Scope)
 
+	// strip "userPassword" Attribute from the Results
+	var sr []*ldap.Entry
+	for _, e := range entries {
+		entry := ldapentry.EntryDropAttribute(e, "userPassword")
+		sr = append(sr, entry)
+	}
+
 	return ldapserver.ServerSearchResult{
-		Entries:    entries,
+		Entries:    sr,
 		Referrals:  []string{},
 		Controls:   []ldap.Control{},
 		ResultCode: ldap.LDAPResultSuccess,
