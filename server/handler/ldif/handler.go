@@ -23,6 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"stash.kopano.io/kgol/rndm"
 
+	"github.com/libregraph/idm/pkg/ldapdn"
 	"github.com/libregraph/idm/pkg/ldapserver"
 	"github.com/libregraph/idm/server/handler"
 )
@@ -63,12 +64,14 @@ func NewLDIFHandler(logger logrus.FieldLogger, fn string, options *Options) (han
 		fn:      fn,
 		options: options,
 
-		baseDN:                  strings.ToLower(options.BaseDN),
 		allowLocalAnonymousBind: options.AllowLocalAnonymousBind,
 
 		ctx: context.Background(),
 
 		activeSearchPagings: cmap.New(),
+	}
+	if h.baseDN, err = ldapdn.ParseNormalize(options.BaseDN); err != nil {
+		return nil, err
 	}
 
 	err = h.open()

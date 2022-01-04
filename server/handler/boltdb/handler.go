@@ -56,9 +56,11 @@ func NewBoltDBHandler(logger logrus.FieldLogger, fn string, options *Options) (h
 		logger: logger,
 		dbfile: fn,
 
-		baseDN:                  strings.ToLower(options.BaseDN),
 		allowLocalAnonymousBind: options.AllowLocalAnonymousBind,
 		ctx:                     context.Background(),
+	}
+	if h.baseDN, err = ldapdn.ParseNormalize(options.BaseDN); err != nil {
+		return nil, err
 	}
 
 	err = h.setup()
