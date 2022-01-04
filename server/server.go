@@ -49,6 +49,7 @@ func NewServer(c *Config) (*Server, error) {
 	case "ldif":
 		ldifHandlerOptions := &ldif.Options{
 			BaseDN:                  s.config.LDAPBaseDN,
+			AdminDN:                 s.config.LDAPAdminDN,
 			AllowLocalAnonymousBind: s.config.LDAPAllowLocalAnonymousBind,
 
 			DefaultCompany:    s.config.LDIFDefaultCompany,
@@ -71,7 +72,9 @@ func NewServer(c *Config) (*Server, error) {
 		}
 	case "boltdb":
 		boltOptions := &boltdb.Options{
-			BaseDN:                  s.config.LDAPBaseDN,
+			BaseDN:  s.config.LDAPBaseDN,
+			AdminDN: s.config.LDAPAdminDN,
+
 			AllowLocalAnonymousBind: s.config.LDAPAllowLocalAnonymousBind,
 		}
 		s.LDAPHandler, err = boltdb.NewBoltDBHandler(s.logger, s.config.BoltDBFile, boltOptions)

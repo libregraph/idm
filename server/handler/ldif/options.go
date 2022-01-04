@@ -7,6 +7,7 @@ package ldif
 
 type Options struct {
 	BaseDN                  string
+	AdminDN                 string
 	AllowLocalAnonymousBind bool
 
 	DefaultCompany    string
