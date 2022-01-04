@@ -15,6 +15,7 @@ import (
 
 	ber "github.com/go-asn1-ber/asn1-ber"
 	"github.com/go-ldap/ldap/v3"
+	"github.com/libregraph/idm/pkg/ldapdn"
 )
 
 type Adder interface {
@@ -265,9 +266,14 @@ handler:
 			if ldapResultCode == ldap.LDAPResultSuccess {
 				boundDN, ok = req.Children[1].Value.(string)
 				if !ok {
-					log.Printf("Malformed Bind DN")
+					log.Print("Malformed Bind DN")
 					break handler
 				}
+				if boundDN, err = ldapdn.ParseNormalize(boundDN); err != nil {
+					log.Printf("Error normalizing Bind DN: %s", err)
+					break handler
+				}
+
 			}
 			responsePacket := encodeBindResponse(messageID, ldapResultCode)
 			if err = sendPacket(conn, responsePacket); err != nil {
