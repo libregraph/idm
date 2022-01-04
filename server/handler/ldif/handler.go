@@ -34,6 +34,7 @@ type ldifHandler struct {
 	options *Options
 
 	baseDN                  string
+	adminDN                 string
 	allowLocalAnonymousBind bool
 
 	ctx context.Context
@@ -71,6 +72,9 @@ func NewLDIFHandler(logger logrus.FieldLogger, fn string, options *Options) (han
 		activeSearchPagings: cmap.New(),
 	}
 	if h.baseDN, err = ldapdn.ParseNormalize(options.BaseDN); err != nil {
+		return nil, err
+	}
+	if h.adminDN, err = ldapdn.ParseNormalize(options.AdminDN); err != nil {
 		return nil, err
 	}
 

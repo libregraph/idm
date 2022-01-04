@@ -22,7 +22,9 @@ type Config struct {
 	TLSCertFile string
 	TLSKeyFile  string
 
-	LDAPBaseDN                  string
+	LDAPBaseDN  string
+	LDAPAdminDN string
+
 	LDAPAllowLocalAnonymousBind bool
 
 	BoltDBFile string

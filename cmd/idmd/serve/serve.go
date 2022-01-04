@@ -37,7 +37,9 @@ var (
 	DefaultTLSCertFile = ""
 	DefaultTLSKeyFile  = ""
 
-	DefaultLDAPBaseDN                  = ""
+	DefaultLDAPBaseDN  = ""
+	DefaultLDAPAdminDN = ""
+
 	DefaultLDAPAllowLocalAnonymousBind = false
 
 	DefaultBoltDBFile = "idmbolt.db"
@@ -72,9 +74,15 @@ func setDefaults() {
 	if envDefaultBoltDBFile != "" {
 		DefaultBoltDBFile = envDefaultBoltDBFile
 	}
+
 	envDefaultLDAPBaseDN := os.Getenv(withEnvBase("DEFAULT_LDAP_BASEDN"))
 	if envDefaultLDAPBaseDN != "" {
 		DefaultLDAPBaseDN = envDefaultLDAPBaseDN
+	}
+
+	envDefaultLDAPAdminDN := os.Getenv(withEnvBase("DEFAULT_LDAP_ADMINDN"))
+	if envDefaultLDAPAdminDN != "" {
+		DefaultLDAPAdminDN = envDefaultLDAPAdminDN
 	}
 
 	envDefaultLDAPListenAddr := os.Getenv(withEnvBase("DEFAULT_LDAP_LISTEN"))
@@ -154,6 +162,9 @@ func CommandServe() *cobra.Command {
 	serveCmd.Flags().StringVar(&DefaultTLSKeyFile, "tls-key-file", DefaultTLSKeyFile, "Server Certificate Key to use for LDAPS connections")
 
 	serveCmd.Flags().StringVar(&DefaultLDAPBaseDN, "ldap-base-dn", DefaultLDAPBaseDN, "BaseDN for LDAP requests")
+	serveCmd.Flags().StringVar(&DefaultLDAPAdminDN, "ldap-admin-dn",
+		DefaultLDAPAdminDN, "Administrator DN. This DN is given full write access to the directory. For Handlers that support write")
+
 	serveCmd.Flags().BoolVar(&DefaultLDAPAllowLocalAnonymousBind, "ldap-allow-local-anonymous", DefaultLDAPAllowLocalAnonymousBind, "Allow anonymous LDAP bind for all local LDAP clients")
 
 	serveCmd.Flags().StringVar(&DefaultBoltDBFile, "boltdb-file", DefaultBoltDBFile, "Filename of the database for the BoltDB Handler")
@@ -225,7 +236,9 @@ func (bs *bootstrap) configure(ctx context.Context, cmd *cobra.Command, args []s
 		TLSCertFile: DefaultTLSCertFile,
 		TLSKeyFile:  DefaultTLSKeyFile,
 
-		LDAPBaseDN:                  DefaultLDAPBaseDN,
+		LDAPBaseDN:  DefaultLDAPBaseDN,
+		LDAPAdminDN: DefaultLDAPAdminDN,
+
 		LDAPAllowLocalAnonymousBind: DefaultLDAPAllowLocalAnonymousBind,
 
 		LDIFMain:   DefaultLDIFMain,

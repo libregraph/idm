@@ -28,13 +28,16 @@ type boltdbHandler struct {
 	logger                  logrus.FieldLogger
 	dbfile                  string
 	baseDN                  string
+	adminDN                 string
 	allowLocalAnonymousBind bool
 	ctx                     context.Context
 	bdb                     *ldbbolt.LdbBolt
 }
 
 type Options struct {
-	BaseDN                  string
+	BaseDN  string
+	AdminDN string
+
 	AllowLocalAnonymousBind bool
 }
 
@@ -60,6 +63,9 @@ func NewBoltDBHandler(logger logrus.FieldLogger, fn string, options *Options) (h
 		ctx:                     context.Background(),
 	}
 	if h.baseDN, err = ldapdn.ParseNormalize(options.BaseDN); err != nil {
+		return nil, err
+	}
+	if h.adminDN, err = ldapdn.ParseNormalize(options.AdminDN); err != nil {
 		return nil, err
 	}
 
@@ -90,6 +96,10 @@ func (h *boltdbHandler) Add(boundDN string, req *ldap.AddRequest, conn net.Conn)
 		"bind_dn":     boundDN,
 		"remote_addr": conn.RemoteAddr().String(),
 	})
+
+	if !h.writeAllowed(boundDN) {
+		return ldap.LDAPResultInsufficientAccessRights, nil
+	}
 
 	e := ldapentry.EntryFromAddRequest(req)
 
@@ -172,6 +182,10 @@ func (h *boltdbHandler) Delete(boundDN string, req *ldap.DelRequest, conn net.Co
 		"remote_addr": conn.RemoteAddr().String(),
 	})
 
+	if !h.writeAllowed(boundDN) {
+		return ldap.LDAPResultInsufficientAccessRights, nil
+	}
+
 	if err := h.bdb.EntryDelete(req.DN); err != nil {
 		logger.WithError(err).WithField("entrydn", req.DN).Debugln("ldap delete failed")
 		if errors.Is(err, ldbbolt.ErrEntryAlreadyExists) {
@@ -188,6 +202,10 @@ func (h *boltdbHandler) Modify(boundDN string, req *ldap.ModifyRequest, conn net
 		"bind_dn":     boundDN,
 		"remote_addr": conn.RemoteAddr().String(),
 	})
+
+	if !h.writeAllowed(boundDN) {
+		return ldap.LDAPResultInsufficientAccessRights, nil
+	}
 
 	if err := h.bdb.EntryModify(req); err != nil {
 		logger.WithError(err).WithField("entrydn", req.DN).Debugln("ldap modify failed")
@@ -234,4 +252,11 @@ func (h *boltdbHandler) WithContext(ctx context.Context) handler.Handler {
 
 func (h *boltdbHandler) Reload(ctx context.Context) error {
 	return nil
+}
+
+func (h *boltdbHandler) writeAllowed(boundDN string) bool {
+	if h.adminDN != "" && h.adminDN == boundDN {
+		return true
+	}
+	return false
 }
