@@ -14,7 +14,7 @@ require (
 	github.com/go-ldap/ldap/v3 v3.4.1
 	github.com/go-ldap/ldif v0.0.0-20200320164324-fd88d9b715b3
 	github.com/orcaman/concurrent-map v1.0.0
-	github.com/prometheus/client_golang v1.12.0
+	github.com/prometheus/client_golang v1.12.1
 	github.com/sethvargo/go-password v0.2.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spacewander/go-suffix-tree v0.0.0-20191010040751-0865e368c784
