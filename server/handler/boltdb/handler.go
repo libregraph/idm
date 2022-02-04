@@ -53,7 +53,6 @@ func NewBoltDBHandler(logger logrus.FieldLogger, fn string, options *Options) (h
 	if err != nil {
 		return nil, err
 	}
-	logger = logger.WithField("db", fn)
 
 	h := &boltdbHandler{
 		logger: logger,
@@ -186,6 +185,7 @@ func (h *boltdbHandler) Delete(boundDN string, req *ldap.DelRequest, conn net.Co
 		return ldap.LDAPResultInsufficientAccessRights, nil
 	}
 
+	logger.Debug("Calling boltdb delete")
 	if err := h.bdb.EntryDelete(req.DN); err != nil {
 		logger.WithError(err).WithField("entrydn", req.DN).Debugln("ldap delete failed")
 		if errors.Is(err, ldbbolt.ErrEntryAlreadyExists) {
@@ -193,6 +193,7 @@ func (h *boltdbHandler) Delete(boundDN string, req *ldap.DelRequest, conn net.Co
 		}
 		return ldap.LDAPResultUnwillingToPerform, err
 	}
+	logger.Debug("delete succeeded")
 	return ldap.LDAPResultSuccess, nil
 }
 
@@ -201,14 +202,16 @@ func (h *boltdbHandler) Modify(boundDN string, req *ldap.ModifyRequest, conn net
 		"op":          "modify",
 		"bind_dn":     boundDN,
 		"remote_addr": conn.RemoteAddr().String(),
+		"entrydn":     req.DN,
 	})
 
 	if !h.writeAllowed(boundDN) {
 		return ldap.LDAPResultInsufficientAccessRights, nil
 	}
 
+	logger.Debug("Calling boltdb modify")
 	if err := h.bdb.EntryModify(req); err != nil {
-		logger.WithError(err).WithField("entrydn", req.DN).Debugln("ldap modify failed")
+		logger.WithError(err).Debug("ldap modify failed")
 		if errors.Is(err, ldbbolt.ErrEntryAlreadyExists) {
 			return ldap.LDAPResultEntryAlreadyExists, nil
 		}
@@ -217,15 +220,23 @@ func (h *boltdbHandler) Modify(boundDN string, req *ldap.ModifyRequest, conn net
 			return ldap.LDAPResultUnwillingToPerform, err
 		}
 		return ldapserver.LDAPResultCode(ldapError.ResultCode), ldapError.Err
-
 	}
+	logger.Debug("modify succeeded")
 	return ldap.LDAPResultSuccess, nil
 }
 
 func (h *boltdbHandler) Search(boundDN string, req *ldap.SearchRequest, conn net.Conn) (ldapserver.ServerSearchResult, error) {
-	h.logger.WithField("op", "search").Debug("start")
+	logger := h.logger.WithFields(logrus.Fields{
+		"op":     "search",
+		"binddn": boundDN,
+		"basedn": req.BaseDN,
+		"filter": req.Filter,
+		"attrs":  req.Attributes,
+	})
 
+	logger.Debug("Calling boltdb search")
 	entries, _ := h.bdb.Search(req.BaseDN, req.Scope)
+	logger.Debugf("boltdb search returned %d entries", len(entries))
 
 	return ldapserver.ServerSearchResult{
 		Entries:    entries,

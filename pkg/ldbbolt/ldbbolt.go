@@ -52,10 +52,11 @@ var (
 
 func (bdb *LdbBolt) Configure(logger logrus.FieldLogger, baseDN, dbfile string, options *bolt.Options) error {
 	bdb.logger = logger
-	logger.Debugf("Open boltdb %s", dbfile)
+	logger = logger.WithField("db", dbfile)
+	logger.Debug("Open boltdb")
 	db, err := bolt.Open(dbfile, 0o600, options)
 	if err != nil {
-		bdb.logger.WithError(err).Error("Error opening database")
+		logger.WithError(err).Error("Error opening database")
 		return err
 	}
 	bdb.db = db
@@ -68,8 +69,9 @@ func (bdb *LdbBolt) Configure(logger logrus.FieldLogger, baseDN, dbfile string, 
 // exist yet. After calling initialize the database is ready to process transactions
 func (bdb *LdbBolt) Initialize() error {
 	var err error
+	logger := bdb.logger.WithField("db", bdb.db.Path())
 	if bdb.options == nil || !bdb.options.ReadOnly {
-		bdb.logger.Debug("Adding default buckets")
+		logger.Debug("Adding default buckets")
 		err = bdb.db.Update(func(tx *bolt.Tx) error {
 			_, err = tx.CreateBucketIfNotExists([]byte("dn2id"))
 			if err != nil {
@@ -86,7 +88,7 @@ func (bdb *LdbBolt) Initialize() error {
 			return nil
 		})
 		if err != nil {
-			bdb.logger.WithError(err).Error("Error creating default buckets")
+			logger.WithError(err).Error("Error creating default buckets")
 		}
 	}
 	return err
@@ -137,7 +139,6 @@ func idToBytes(id uint64) []byte {
 }
 
 func (bdb *LdbBolt) getChildrenIDs(tx *bolt.Tx, parent uint64) []uint64 {
-	bdb.logger.Debugf("GetChildrenIDs '%d'", parent)
 	id2Children := tx.Bucket([]byte("id2children"))
 	children := id2Children.Get(idToBytes(parent))
 	r := bytes.NewReader(children)
@@ -145,19 +146,25 @@ func (bdb *LdbBolt) getChildrenIDs(tx *bolt.Tx, parent uint64) []uint64 {
 	if err := binary.Read(r, binary.LittleEndian, &ids); err != nil {
 		bdb.logger.Error(err)
 	}
-	bdb.logger.Debugf("Children '%v'\n", ids)
+	bdb.logger.WithFields(logrus.Fields{
+		"parentid": parent,
+		"children": ids,
+	}).Debug("getChildrenIDs")
 	return ids
 }
 
 func (bdb *LdbBolt) getSubtreeIDs(tx *bolt.Tx, root uint64) []uint64 {
-	bdb.logger.Debugf("GetSubtreeIDs '%d'", root)
+	bdb.logger.WithField("rootid", root).Debug("getSubtreeIDs")
 	var res []uint64
 	children := bdb.getChildrenIDs(tx, root)
 	res = append(res, children...)
 	for _, child := range children {
 		res = append(res, bdb.getSubtreeIDs(tx, child)...)
 	}
-	bdb.logger.Debugf("GetSubtreeIDs '%v'", res)
+	bdb.logger.WithFields(logrus.Fields{
+		"rootid":  root,
+		"subtree": res,
+	}).Debug("getSubtreeIDs")
 	return res
 }
 
