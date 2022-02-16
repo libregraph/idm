@@ -11,7 +11,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.3
-	github.com/go-ldap/ldap/v3 v3.4.1
+	github.com/go-ldap/ldap/v3 v3.4.2
 	github.com/go-ldap/ldif v0.0.0-20200320164324-fd88d9b715b3
 	github.com/orcaman/concurrent-map v1.0.0
 	github.com/prometheus/client_golang v1.12.1
