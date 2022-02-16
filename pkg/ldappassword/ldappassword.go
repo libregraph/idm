@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"github.com/alexedwards/argon2id"
-	"github.com/amoghe/go-crypt"
 	"github.com/trustelem/zxcvbn"
 )
 
@@ -60,7 +59,7 @@ func Validate(password string, hash string) (bool, error) {
 				salt = strings.Join(hashParts[:4], "$")
 			}
 		}
-		encrypted, err := crypt.Crypt(password, salt)
+		encrypted, err := crypt(password, salt)
 		if err != nil {
 			return false, fmt.Errorf("crypt error: %w", err)
 		}
