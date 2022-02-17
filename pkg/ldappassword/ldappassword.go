@@ -9,9 +9,15 @@ import (
 	"crypto/sha1" //nolint,gosec
 	"crypto/subtle"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/GehirnInc/crypt"
+	_ "github.com/GehirnInc/crypt/apr1_crypt"
+	_ "github.com/GehirnInc/crypt/md5_crypt"
+	_ "github.com/GehirnInc/crypt/sha256_crypt"
+	_ "github.com/GehirnInc/crypt/sha512_crypt"
 	"github.com/alexedwards/argon2id"
 	"github.com/trustelem/zxcvbn"
 )
@@ -49,21 +55,18 @@ func Validate(password string, hash string) (bool, error) {
 		return true, nil
 
 	case "{CRYPT}":
-		// By default the salt is a two character string.
-		salt := hash[:2]
-		if hash[0] == '$' {
-			// In the glibc2 version, salt format for additional encryption
-			// $id$salt$encrypted.
-			hashParts := strings.SplitN(hash, "$", 4)
-			if len(hashParts) == 4 {
-				salt = strings.Join(hashParts[:4], "$")
-			}
+		if !crypt.IsHashSupported(hash) {
+			return false, errors.New("unsupported crypt format")
 		}
-		encrypted, err := crypt(password, salt)
+		crypter := crypt.NewFromHash(hash)
+		err := crypter.Verify(hash, []byte(password))
 		if err != nil {
+			if errors.Is(err, crypt.ErrKeyMismatch) {
+				return false, fmt.Errorf("invalid credentials")
+			}
 			return false, fmt.Errorf("crypt error: %w", err)
 		}
-		passwordBytes = []byte(encrypted)
+		return true, nil
 
 	case "{SSHA}":
 		// BASE64(SHA-1(clear_text + salt) + salt)
