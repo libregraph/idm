@@ -34,6 +34,7 @@ PKGS     = $(or $(PKG),$(shell $(GO) list -mod=readonly ./... | grep -v "^$(PACK
 TESTPKGS = $(shell $(GO) list -mod=readonly -f '{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' $(PKGS) 2>/dev/null)
 CMDS     = $(or $(CMD),$(addprefix cmd/,$(notdir $(shell find "$(PWD)/cmd/" -maxdepth 1 -type d))))
 TIMEOUT  = 30
+BUILD_TAGS ?=
 
 # Build
 
@@ -47,7 +48,7 @@ $(CMDS): vendor ; $(info building $@ ...) @
 	CGO_ENABLED=$(CGO_ENABLED) $(GO) build \
 		-mod=vendor \
 		-trimpath \
-		-tags release \
+		-tags "release $(BUILD_TAGS)" \
 		-buildmode=exe \
 		-ldflags '-s -w -buildid=reproducible/$(VERSION) -X $(PACKAGE)/version.Version=$(VERSION) -X $(PACKAGE)/version.BuildDate=$(DATE) -extldflags -static' \
 		-o bin/$(notdir $@) ./$@
