@@ -1,4 +1,4 @@
-//go:build linux || freebsd || netbsd
+//go:build !disable_crypt && (linux || freebsd || netbsd)
 
 /*
  * SPDX-License-Identifier: Apache-2.0
