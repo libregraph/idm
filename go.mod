@@ -6,7 +6,7 @@ require (
 	github.com/Azure/go-ntlmssp v0.0.0-20211209120228-48547f28849e // indirect
 	github.com/Songmu/prompter v0.5.0
 	github.com/alexedwards/argon2id v0.0.0-20211130144151-3585854a6387
-	github.com/amoghe/go-crypt v0.0.0-20191109212615-b2ff80594b7f
+	github.com/amoghe/go-crypt v0.0.0-20220222110647-20eada5f5964
 	github.com/armon/go-radix v1.0.0
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/dlclark/regexp2 v1.4.0 // indirect
