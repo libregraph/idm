@@ -146,25 +146,28 @@ func (bdb *LdbBolt) getChildrenIDs(tx *bolt.Tx, parent uint64) []uint64 {
 	if err := binary.Read(r, binary.LittleEndian, &ids); err != nil {
 		bdb.logger.Error(err)
 	}
-	bdb.logger.WithFields(logrus.Fields{
-		"parentid": parent,
-		"children": ids,
-	}).Debug("getChildrenIDs")
+	// This logging it too verbose even for the "debug" level. Leaving
+	// it here commented out as it can be helpful during development.
+	// bdb.logger.WithFields(logrus.Fields{
+	// 	"parentid": parent,
+	// 	"children": ids,
+	// }).Debug("getChildrenIDs")
 	return ids
 }
 
 func (bdb *LdbBolt) getSubtreeIDs(tx *bolt.Tx, root uint64) []uint64 {
-	bdb.logger.WithField("rootid", root).Debug("getSubtreeIDs")
 	var res []uint64
 	children := bdb.getChildrenIDs(tx, root)
 	res = append(res, children...)
 	for _, child := range children {
 		res = append(res, bdb.getSubtreeIDs(tx, child)...)
 	}
-	bdb.logger.WithFields(logrus.Fields{
-		"rootid":  root,
-		"subtree": res,
-	}).Debug("getSubtreeIDs")
+	// This logging it too verbose even for the "debug" level. Leaving
+	// it here commented out as it can be helpful during development.
+	// bdb.logger.WithFields(logrus.Fields{
+	// 	"rootid":  root,
+	// 	"subtree": res,
+	// }).Debug("getSubtreeIDs")
 	return res
 }
 
