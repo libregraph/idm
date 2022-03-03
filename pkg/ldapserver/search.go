@@ -10,7 +10,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/go-asn1-ber/asn1-ber"
+	ber "github.com/go-asn1-ber/asn1-ber"
 	"github.com/go-ldap/ldap/v3"
 )
 
@@ -201,12 +201,13 @@ func encodeSearchDone(messageID int64, ldapResultCode LDAPResultCode, doneContro
 	donePacket.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, "", "errorMessage: "))
 	responsePacket.AppendChild(donePacket)
 
-	contextPacket := ber.Encode(ber.ClassContext, ber.TypeConstructed, ber.TagEOC, nil, "Controls: ")
-	for _, control := range *doneControls {
-		contextPacket.AppendChild(control.Encode())
+	if doneControls != nil {
+		contextPacket := ber.Encode(ber.ClassContext, ber.TypeConstructed, ber.TagEOC, nil, "Controls: ")
+		for _, control := range *doneControls {
+			contextPacket.AppendChild(control.Encode())
+		}
+		responsePacket.AppendChild(contextPacket)
 	}
-	responsePacket.AppendChild(contextPacket)
-
 	// ber.PrintPacket(responsePacket)
 	return responsePacket
 }
