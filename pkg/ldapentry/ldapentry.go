@@ -3,6 +3,7 @@ package ldapentry
 import (
 	"errors"
 	"log"
+	"strings"
 
 	"github.com/go-ldap/ldap/v3"
 	"golang.org/x/text/cases"
@@ -129,6 +130,19 @@ func entryApplyModDelete(curVals, delVals []string) (newVals []string) {
 		}
 	}
 	return newVals
+}
+
+func EntryDropAttribute(e *ldap.Entry, at string) *ldap.Entry {
+	if len(e.GetEqualFoldAttributeValues(at)) == 0 {
+		return e
+	}
+	var newAttr []*ldap.EntryAttribute
+	for _, attr := range e.Attributes {
+		if !strings.EqualFold(at, attr.Name) {
+			newAttr = append(newAttr, attr)
+		}
+	}
+	return &ldap.Entry{DN: e.DN, Attributes: newAttr}
 }
 
 func EntryFromAddRequest(add *ldap.AddRequest) *ldap.Entry {
