@@ -161,7 +161,7 @@ func (h *boltdbHandler) validatePassword(logger logrus.FieldLogger, bindDN, bind
 		}
 		return ldap.LDAPResultInvalidCredentials, nil
 	}
-	userPassword := entries[0].GetAttributeValue("userPassword")
+	userPassword := entries[0].GetEqualFoldAttributeValue("userPassword")
 	match, err := ldappassword.Validate(bindSimplePw, userPassword)
 	if err != nil {
 		logger.Error(err)
