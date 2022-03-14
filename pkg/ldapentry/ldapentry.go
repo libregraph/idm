@@ -39,10 +39,20 @@ func ApplyModify(old *ldap.Entry, mod *ldap.ModifyRequest) (newEntry *ldap.Entry
 
 		case ldap.ReplaceAttribute:
 			log.Printf("applying replace for Attribute: %s", c.Modification.Type)
-			// Modifies on RDN attributes need special care
+			// Modifies on RDN attributes need special care to make sure that the rdn Value is not removed
 			for _, rdnAttr := range rdn.Attributes {
 				if nType == casefold.String(rdnAttr.Type) {
-					return nil, ldap.NewError(ldap.LDAPResultNotAllowedOnRDN, errors.New(""))
+					rdnPresent := false
+					nRdnVal := casefold.String(rdnAttr.Value)
+					for _, newVal := range c.Modification.Vals {
+						if nRdnVal == casefold.String(newVal) {
+							rdnPresent = true
+							break
+						}
+					}
+					if !rdnPresent {
+						return nil, ldap.NewError(ldap.LDAPResultNotAllowedOnRDN, errors.New(""))
+					}
 				}
 			}
 			newEntry.Attributes = entryReplaceValues(newEntry.Attributes, c.Modification.Type, c.Modification.Vals)

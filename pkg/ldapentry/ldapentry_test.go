@@ -128,3 +128,36 @@ func TestApplyModifyReplace(t *testing.T) {
 		t.Errorf("Replace attribute value failed")
 	}
 }
+
+func TestApplyModifyReplaceRDN(t *testing.T) {
+	mr := &ldap.ModifyRequest{
+		DN: userEntry.DN,
+	}
+
+	// Replacing the RDN value should fail
+	mr.Replace("uid", []string{"otheruser"})
+	_, err := ApplyModify(userEntry, mr)
+	if err == nil || !ldap.IsErrorWithCode(err, ldap.LDAPResultNotAllowedOnRDN) {
+		t.Errorf("Error %v", err)
+	}
+
+	// Replacing if the RDN value stays present should succeed
+	mr = &ldap.ModifyRequest{
+		DN: userEntry.DN,
+	}
+	mr.Replace("uid", []string{"user", "otheruser"})
+	e, err := ApplyModify(userEntry, mr)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	vals := e.GetAttributeValues("uid")
+	if len(vals) != 2 {
+		t.Errorf("Unexpected number of values after replace")
+	}
+
+	for _, v := range []string{"user", "otheruser"} {
+		if vals[0] != v && vals[1] != v {
+			t.Errorf("Value %s missing after replace", v)
+		}
+	}
+}
