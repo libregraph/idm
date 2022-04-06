@@ -10,7 +10,7 @@ require (
 	github.com/armon/go-radix v1.0.0
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/dlclark/regexp2 v1.4.0 // indirect
-	github.com/go-asn1-ber/asn1-ber v1.5.3
+	github.com/go-asn1-ber/asn1-ber v1.5.4
 	github.com/go-ldap/ldap/v3 v3.4.2
 	github.com/go-ldap/ldif v0.0.0-20200320164324-fd88d9b715b3
 	github.com/google/go-cmp v0.5.6 // indirect
