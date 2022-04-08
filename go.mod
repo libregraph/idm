@@ -3,7 +3,6 @@ module github.com/libregraph/idm
 go 1.16
 
 require (
-	github.com/Azure/go-ntlmssp v0.0.0-20211209120228-48547f28849e // indirect
 	github.com/Songmu/prompter v0.5.0
 	github.com/alexedwards/argon2id v0.0.0-20211130144151-3585854a6387
 	github.com/amoghe/go-crypt v0.0.0-20220222110647-20eada5f5964
@@ -11,7 +10,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.4
-	github.com/go-ldap/ldap/v3 v3.4.2
+	github.com/go-ldap/ldap/v3 v3.4.3
 	github.com/go-ldap/ldif v0.0.0-20200320164324-fd88d9b715b3
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
@@ -25,7 +24,6 @@ require (
 	github.com/test-go/testify v1.1.4 // indirect
 	github.com/trustelem/zxcvbn v1.0.1
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7
 	google.golang.org/protobuf v1.27.1 // indirect
