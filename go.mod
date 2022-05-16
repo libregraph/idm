@@ -15,7 +15,7 @@ require (
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/orcaman/concurrent-map v1.0.0
-	github.com/prometheus/client_golang v1.12.1
+	github.com/prometheus/client_golang v1.12.2
 	github.com/sethvargo/go-password v0.2.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spacewander/go-suffix-tree v0.0.0-20191010040751-0865e368c784
