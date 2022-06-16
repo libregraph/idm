@@ -304,6 +304,26 @@ handler:
 				break handler
 			}
 
+		case ldap.ApplicationExtendedRequest:
+			log.Printf("Extended Request")
+			resultCode := uint16(ldap.LDAPResultSuccess)
+			resultMsg := ""
+			var innerBer, responsePacket *ber.Packet
+			if innerBer, err = HandleExtendedRequest(req, boundDN, server, conn); err != nil {
+				resultCode = ldap.LDAPResultOperationsError
+				resultMsg = err.Error()
+				responsePacket = encodeLDAPResponse(messageID, ldap.ApplicationExtendedResponse, LDAPResultCode(resultCode), resultMsg)
+			} else {
+				responsePacket = ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Response")
+				responsePacket.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, messageID, "Message ID"))
+				responsePacket.AppendChild(innerBer)
+			}
+
+			if err = sendPacket(conn, responsePacket); err != nil {
+				log.Printf("sendPacket error %s", err.Error())
+				break handler
+			}
+
 		case ldap.ApplicationModifyRequest:
 			server.Stats.countModifies(1)
 			resultCode := uint16(ldap.LDAPResultSuccess)
