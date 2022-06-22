@@ -43,15 +43,16 @@ type Closer interface {
 }
 
 type Server struct {
-	AddFns      map[string]Adder
-	BindFns     map[string]Binder
-	DeleteFns   map[string]Deleter
-	ModifyFns   map[string]Modifier
-	SearchFns   map[string]Searcher
-	CloseFns    map[string]Closer
-	Quit        chan bool
-	EnforceLDAP bool
-	Stats       *Stats
+	AddFns                  map[string]Adder
+	BindFns                 map[string]Binder
+	DeleteFns               map[string]Deleter
+	ModifyFns               map[string]Modifier
+	SearchFns               map[string]Searcher
+	CloseFns                map[string]Closer
+	Quit                    chan bool
+	EnforceLDAP             bool
+	GeneratedPasswordLength int
+	Stats                   *Stats
 }
 
 type ServerSearchResult struct {
@@ -75,6 +76,7 @@ func NewServer() *Server {
 	s.BindFunc("", d)
 	s.SearchFunc("", d)
 	s.CloseFunc("", d)
+	s.GeneratedPasswordLength = 16
 	s.Stats = nil
 	return s
 }

@@ -23,6 +23,8 @@ import (
 	"github.com/libregraph/idm/server/handler/ldif"
 )
 
+const DefaultGeneratedPasswordLength = 16
+
 // Server is our server implementation.
 type Server struct {
 	config *Config
@@ -43,6 +45,7 @@ func NewServer(c *Config) (*Server, error) {
 
 	s.LDAPServer = ldapserver.NewServer()
 	s.LDAPServer.EnforceLDAP = false
+	s.LDAPServer.GeneratedPasswordLength = DefaultGeneratedPasswordLength
 
 	var err error
 	switch c.LDAPHandler {

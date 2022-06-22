@@ -7,6 +7,7 @@ import (
 
 	ber "github.com/go-asn1-ber/asn1-ber"
 	"github.com/go-ldap/ldap/v3"
+	"github.com/libregraph/idm/pkg/ldappassword"
 )
 
 const pwmodOID = "1.3.6.1.4.1.4203.1.11.1"
@@ -23,6 +24,7 @@ func init() {
 }
 
 func HandlePasswordModifyExOp(req *ber.Packet, boundDN string, server *Server, conn net.Conn) (*ber.Packet, error) {
+	var passwordGenerated bool
 	log.Printf("HandlePasswordModifyExOp")
 	if boundDN == "" {
 		return nil, ldap.NewError(ldap.LDAPResultUnwillingToPerform, errors.New("authentication required"))
@@ -37,8 +39,28 @@ func HandlePasswordModifyExOp(req *ber.Packet, boundDN string, server *Server, c
 	if pwReq.UserIdentity == "" {
 		pwReq.UserIdentity = boundDN
 	}
+
+	if pwReq.NewPassword == "" {
+		// New password empty means, we're requested to generate a new password
+		var err error
+		if pwReq.NewPassword, err = ldappassword.GenerateRandomPassword(server.GeneratedPasswordLength); err != nil {
+			log.Printf("Failed to generate new password: '%s'", err)
+			return nil, ldap.NewError(ldap.LDAPResultOperationsError, errors.New("Failed to generate new Password"))
+		}
+		passwordGenerated = true
+	}
+	pwReq.NewPassword, err = ldappassword.Hash(pwReq.NewPassword, "{ARGON2}")
+	if err != nil {
+		return nil, ldap.NewError(ldap.LDAPResultOperationsError, err)
+	}
+
 	log.Printf("Modify password extended operation for user '%s'", pwReq.UserIdentity)
-	return nil, nil
+	var response *ber.Packet
+	if passwordGenerated {
+		response = ber.NewSequence("PasswdModifyResponseValue")
+		response.AppendChild(ber.NewString(ber.ClassContext, ber.TypePrimitive, 0, pwReq.NewPassword, "genPasswd"))
+	}
+	return response, nil
 }
 
 func parsePasswordModifyExop(req *ber.Packet) (*ldap.PasswordModifyRequest, error) {
