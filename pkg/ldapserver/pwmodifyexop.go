@@ -2,6 +2,7 @@ package ldapserver
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net"
 
@@ -55,6 +56,25 @@ func HandlePasswordModifyExOp(req *ber.Packet, boundDN string, server *Server, c
 	}
 
 	log.Printf("Modify password extended operation for user '%s'", pwReq.UserIdentity)
+
+	fnNames := []string{}
+	for k := range server.PasswordExOpFns {
+		fnNames = append(fnNames, k)
+	}
+	fn := routeFunc(pwReq.UserIdentity, fnNames)
+	var pwUpdatefn PasswordUpdater
+	if pwUpdatefn = server.PasswordExOpFns[fn]; pwUpdatefn == nil {
+		if fn == "" {
+			err = fmt.Errorf("no suitable handler found for dn: '%s'", pwReq.UserIdentity)
+		} else {
+			err = fmt.Errorf("handler '%s' does not support add", fn)
+		}
+		return nil, ldap.NewError(ldap.LDAPResultUnwillingToPerform, err)
+	}
+	code, err := pwUpdatefn.ModifyPasswordExop(boundDN, pwReq, conn)
+	if code != ldap.LDAPResultSuccess {
+		return nil, ldap.NewError(uint16(code), err)
+	}
 	var response *ber.Packet
 	if passwordGenerated {
 		response = ber.NewSequence("PasswdModifyResponseValue")

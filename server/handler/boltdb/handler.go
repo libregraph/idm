@@ -225,6 +225,10 @@ func (h *boltdbHandler) Modify(boundDN string, req *ldap.ModifyRequest, conn net
 	return ldap.LDAPResultSuccess, nil
 }
 
+func (h *boltdbHandler) ModifyPasswordExop(boundDN string, req *ldap.PasswordModifyRequest, conn net.Conn) (ldapserver.LDAPResultCode, error) {
+	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
+}
+
 func (h *boltdbHandler) Search(boundDN string, req *ldap.SearchRequest, conn net.Conn) (ldapserver.ServerSearchResult, error) {
 	logger := h.logger.WithFields(logrus.Fields{
 		"op":     "search",
