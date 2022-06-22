@@ -6,10 +6,12 @@
 package ldappassword
 
 import (
+	"crypto/rand"
 	"crypto/sha1" //nolint,gosec
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/alexedwards/argon2id"
@@ -114,4 +116,18 @@ func Hash(password string, algorithm string) (string, error) {
 func EstimatePasswordStrength(password string, userInputs []string) int {
 	result := zxcvbn.PasswordStrength(password, userInputs)
 	return result.Score
+}
+
+func GenerateRandomPassword(length int) (string, error) {
+	const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-=+!@#$%^&*."
+	ret := make([]byte, length)
+	for i := 0; i < length; i++ {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
+		if err != nil {
+			return "", err
+		}
+		ret[i] = chars[num.Int64()]
+	}
+
+	return string(ret), nil
 }
