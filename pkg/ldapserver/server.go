@@ -34,6 +34,10 @@ type Modifier interface {
 	Modify(boundDN string, req *ldap.ModifyRequest, conn net.Conn) (LDAPResultCode, error)
 }
 
+type PasswordUpdater interface {
+	ModifyPasswordExop(boundDN string, req *ldap.PasswordModifyRequest, conn net.Conn) (LDAPResultCode, error)
+}
+
 type Searcher interface {
 	Search(boundDN string, req *ldap.SearchRequest, conn net.Conn) (ServerSearchResult, error)
 }
@@ -47,6 +51,7 @@ type Server struct {
 	BindFns                 map[string]Binder
 	DeleteFns               map[string]Deleter
 	ModifyFns               map[string]Modifier
+	PasswordExOpFns         map[string]PasswordUpdater
 	SearchFns               map[string]Searcher
 	CloseFns                map[string]Closer
 	Quit                    chan bool
@@ -71,6 +76,7 @@ func NewServer() *Server {
 	s.BindFns = make(map[string]Binder)
 	s.DeleteFns = make(map[string]Deleter)
 	s.ModifyFns = make(map[string]Modifier)
+	s.PasswordExOpFns = make(map[string]PasswordUpdater)
 	s.SearchFns = make(map[string]Searcher)
 	s.CloseFns = make(map[string]Closer)
 	s.BindFunc("", d)
@@ -95,6 +101,10 @@ func (server *Server) DeleteFunc(baseDN string, f Deleter) {
 
 func (server *Server) ModifyFunc(baseDN string, f Modifier) {
 	server.ModifyFns[baseDN] = f
+}
+
+func (server *Server) PasswordExOpFunc(baseDN string, f PasswordUpdater) {
+	server.PasswordExOpFns[baseDN] = f
 }
 
 func (server *Server) SearchFunc(baseDN string, f Searcher) {

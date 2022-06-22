@@ -138,6 +138,7 @@ func (s *Server) Serve(ctx context.Context) error {
 	s.LDAPServer.BindFunc("", ldapHandler)
 	s.LDAPServer.DeleteFunc("", ldapHandler)
 	s.LDAPServer.ModifyFunc("", ldapHandler)
+	s.LDAPServer.PasswordExOpFunc("", ldapHandler)
 	s.LDAPServer.SearchFunc("", ldapHandler)
 	s.LDAPServer.CloseFunc("", ldapHandler)
 
