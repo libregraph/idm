@@ -226,7 +226,35 @@ func (h *boltdbHandler) Modify(boundDN string, req *ldap.ModifyRequest, conn net
 }
 
 func (h *boltdbHandler) ModifyPasswordExop(boundDN string, req *ldap.PasswordModifyRequest, conn net.Conn) (ldapserver.LDAPResultCode, error) {
-	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
+	logger := h.logger.WithFields(logrus.Fields{
+		"op":           "modpw_exop",
+		"binddn":       boundDN,
+		"UserIdentity": req.UserIdentity,
+		"OldPWPresent": req.OldPassword != "",
+		"NewPwPresent": req.NewPassword != "",
+	})
+
+	if boundDN == "" {
+		return ldap.LDAPResultInsufficientAccessRights, nil
+	}
+
+	if req.UserIdentity != "" {
+		pwUserDN, err := ldapdn.ParseNormalize(req.UserIdentity)
+		if err != nil {
+			return ldap.LDAPResultOperationsError, errors.New("Error parsing DN in password modify extended operation.")
+		}
+		if boundDN != pwUserDN && boundDN != h.adminDN {
+			return ldap.LDAPResultInsufficientAccessRights, nil
+		}
+	}
+
+	logger.Debug("Calling boltdb UpdatePassword")
+	err := h.bdb.UpdatePassword(req)
+	if err != nil {
+		logger.Debugf("boltdb UpdatePassword returned '%s'", err)
+		return ldap.LDAPResultOther, err
+	}
+	return ldap.LDAPResultSuccess, err
 }
 
 func (h *boltdbHandler) Search(boundDN string, req *ldap.SearchRequest, conn net.Conn) (ldapserver.ServerSearchResult, error) {

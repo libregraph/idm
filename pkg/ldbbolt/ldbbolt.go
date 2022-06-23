@@ -35,6 +35,7 @@ import (
 
 	"github.com/libregraph/idm/pkg/ldapdn"
 	"github.com/libregraph/idm/pkg/ldapentry"
+	"github.com/libregraph/idm/pkg/ldappassword"
 )
 
 type LdbBolt struct {
@@ -288,20 +289,67 @@ func (bdb *LdbBolt) EntryModify(req *ldap.ModifyRequest) error {
 		if innerErr != nil {
 			return innerErr
 		}
-		newEntry, innerErr := ldapentry.ApplyModify(oldEntry, req)
+		return bdb.entryModifyWithTxn(tx, id, oldEntry, req)
+	})
+	return err
+}
+
+func (bdb *LdbBolt) entryModifyWithTxn(tx *bolt.Tx, id uint64, entry *ldap.Entry, req *ldap.ModifyRequest) error {
+	newEntry, innerErr := ldapentry.ApplyModify(entry, req)
+	if innerErr != nil {
+		return innerErr
+	}
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	if innerErr := enc.Encode(newEntry); innerErr != nil {
+		return innerErr
+	}
+	id2entry := tx.Bucket([]byte("id2entry"))
+	if innerErr := id2entry.Put(idToBytes(id), buf.Bytes()); innerErr != nil {
+		return innerErr
+	}
+	return nil
+}
+
+func (bdb *LdbBolt) UpdatePassword(req *ldap.PasswordModifyRequest) error {
+	ndn, err := ldapdn.ParseNormalize(req.UserIdentity)
+	if err != nil {
+		return err
+	}
+
+	err = bdb.db.Update(func(tx *bolt.Tx) error {
+		userEntry, id, innerErr := bdb.getEntryByDN(tx, ndn)
 		if innerErr != nil {
 			return innerErr
 		}
-		var buf bytes.Buffer
-		enc := gob.NewEncoder(&buf)
-		if innerErr := enc.Encode(newEntry); innerErr != nil {
-			return innerErr
-		}
-		id2entry := tx.Bucket([]byte("id2entry"))
-		if innerErr := id2entry.Put(idToBytes(id), buf.Bytes()); innerErr != nil {
-			return innerErr
+		// Note: the password check we perform here is more or less unneeded.
+		// If the request got here it's either issued by the admin (which does
+		// not need the old password to reset a users password) or a user trying
+		// to update its own password. In which case the password is already verified
+		// as we only allow authenticated users to issue this request. Still, if
+		// the request contains an old password we verify it and error out if it
+		// doesn't match.
+		if req.OldPassword != "" {
+			userPassword := userEntry.GetEqualFoldAttributeValue("userPassword")
+			match, err := ldappassword.Validate(req.OldPassword, userPassword)
+			if err != nil {
+				bdb.logger.Error(err)
+				return ldap.NewError(ldap.LDAPResultUnwillingToPerform, errors.New("Failed to validate old Password"))
+			}
+			if !match {
+				bdb.logger.Debug("Old password does not match")
+				return ldap.NewError(ldap.LDAPResultUnwillingToPerform, errors.New("Failed to validate old Password"))
+			}
 		}
 
+		mod := ldap.ModifyRequest{}
+		mod.DN = ndn
+		mod.Replace("userPassword", []string{req.NewPassword})
+		innerErr = bdb.entryModifyWithTxn(tx, id, userEntry, &mod)
+		if innerErr != nil {
+			bdb.logger.Debugf("Failed to update password for '%s': '%s'", ndn, err)
+			return ldap.NewError(ldap.LDAPResultOperationsError, errors.New("Failed to update Password"))
+		}
 		return nil
 	})
 	return err
@@ -317,7 +365,6 @@ func (bdb *LdbBolt) addID2Children(tx *bolt.Tx, nParentDN string, newChildID uin
 	bdb.logger.Debugf("Parent ID: %v", parentID)
 
 	id2Children := tx.Bucket([]byte("id2children"))
-
 	// FIXME add sanity check here if ID is already present
 	children := id2Children.Get(idToBytes(parentID))
 	children = append(children, idToBytes(newChildID)...)
