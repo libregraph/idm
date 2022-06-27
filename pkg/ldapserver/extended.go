@@ -74,7 +74,7 @@ func parseExtendedRequest(req *ber.Packet) (*ExtendedRequest, error) {
 	return &extReq, nil
 }
 
-func encodeExtendedResponse(rescode LDAPResultCode, msg string, oid string, responseValue *ber.Packet) *ber.Packet {
+func encodeExtendedResponse(rescode LDAPResultCode, msg, oid string, responseValue *ber.Packet) *ber.Packet {
 	respBer := ber.Encode(ber.ClassApplication, ber.TypeConstructed,
 		ber.Tag(ldap.ApplicationExtendedResponse), nil,
 		ldap.ApplicationMap[ldap.ApplicationExtendedResponse])
