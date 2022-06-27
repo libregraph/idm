@@ -41,11 +41,12 @@ func TestParsePasswordModifyExop(t *testing.T) {
 	pkt = createPwExopPacket()
 	pkt.AppendChild(body)
 	pwExop, err = parsePasswordModifyExop(pkt)
-	if err != nil {
+	switch {
+	case err != nil:
 		t.Errorf("Expected success for request with	just UserIdentity present. Got: %s", err)
-	} else if pwExop.UserIdentity != "identity" {
+	case pwExop.UserIdentity != "identity":
 		t.Errorf("Expected UserIdentity to be present in request body")
-	} else if pwExop.OldPassword != "" || pwExop.NewPassword != "" {
+	case pwExop.OldPassword != "" || pwExop.NewPassword != "":
 		t.Errorf("Expected zero values Exop Request empty request body")
 	}
 
@@ -54,11 +55,12 @@ func TestParsePasswordModifyExop(t *testing.T) {
 	pkt = createPwExopPacket()
 	pkt.AppendChild(body)
 	pwExop, err = parsePasswordModifyExop(pkt)
-	if err != nil {
+	switch {
+	case err != nil:
 		t.Errorf("Expected success for request with	just OldPassword present. Got: %s", err)
-	} else if pwExop.OldPassword != "oldpw" {
+	case pwExop.OldPassword != "oldpw":
 		t.Errorf("Expected OldPassword to be present in request body")
-	} else if pwExop.UserIdentity != "" || pwExop.NewPassword != "" {
+	case pwExop.UserIdentity != "" || pwExop.NewPassword != "":
 		t.Errorf("Expected zero values Exop Request empty request body")
 	}
 
@@ -67,11 +69,12 @@ func TestParsePasswordModifyExop(t *testing.T) {
 	pkt = createPwExopPacket()
 	pkt.AppendChild(body)
 	pwExop, err = parsePasswordModifyExop(pkt)
-	if err != nil {
+	switch {
+	case err != nil:
 		t.Errorf("Expected success for request with	just NewPassword present. Got: %s", err)
-	} else if pwExop.NewPassword != "newpw" {
+	case pwExop.NewPassword != "newpw":
 		t.Errorf("Expected NewPassword to be present in request body")
-	} else if pwExop.UserIdentity != "" || pwExop.OldPassword != "" {
+	case pwExop.UserIdentity != "" || pwExop.OldPassword != "":
 		t.Errorf("Expected zero values Exop Request empty request body")
 	}
 
@@ -82,13 +85,14 @@ func TestParsePasswordModifyExop(t *testing.T) {
 	pkt = createPwExopPacket()
 	pkt.AppendChild(body)
 	pwExop, err = parsePasswordModifyExop(pkt)
-	if err != nil {
+	switch {
+	case err != nil:
 		t.Errorf("Expected success for request with all fields present. Got: %s", err)
-	} else if pwExop.UserIdentity != "identity" {
+	case pwExop.UserIdentity != "identity":
 		t.Errorf("Expected UserIdentity to be present in request body")
-	} else if pwExop.OldPassword != "oldpw" {
+	case pwExop.OldPassword != "oldpw":
 		t.Errorf("Expected OldPassword to be present in request body")
-	} else if pwExop.NewPassword != "newpw" {
+	case pwExop.NewPassword != "newpw":
 		t.Errorf("Expected NewPassword to be present in request body")
 	}
 }
