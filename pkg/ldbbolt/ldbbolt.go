@@ -343,7 +343,7 @@ func (bdb *LdbBolt) UpdatePassword(req *ldap.PasswordModifyRequest) error {
 		}
 
 		mod := ldap.ModifyRequest{}
-		mod.DN = ndn
+		mod.DN = req.UserIdentity
 		mod.Replace("userPassword", []string{req.NewPassword})
 		innerErr = bdb.entryModifyWithTxn(tx, id, userEntry, &mod)
 		if innerErr != nil {
