@@ -6,23 +6,20 @@ import (
 
 	"github.com/go-ldap/ldap/v3"
 	"golang.org/x/text/cases"
-
-	"github.com/libregraph/idm/pkg/ldapdn"
 )
 
 func ApplyModify(old *ldap.Entry, mod *ldap.ModifyRequest) (newEntry *ldap.Entry, err error) {
-	parsed, err := ldap.ParseDN(old.DN)
+	oldDN, err := ldap.ParseDN(old.DN)
 	if err != nil {
 		return nil, err
 	}
-	nOldDN := ldapdn.Normalize(parsed)
-	rdn := parsed.RDNs[0]
-	nReqDN, err := ldapdn.ParseNormalize(mod.DN)
+	rdn := oldDN.RDNs[0]
+	modDN, err := ldap.ParseDN(mod.DN)
 	if err != nil {
 		return nil, err
 	}
 	// This shouldn't happen if we ge here (TM)
-	if nOldDN != nReqDN {
+	if oldDN.EqualFold(modDN) {
 		return nil, ldap.NewError(ldap.LDAPResultUnwillingToPerform, errors.New("DNs do not match"))
 	}
 
