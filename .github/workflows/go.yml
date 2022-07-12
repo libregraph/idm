@@ -39,7 +39,7 @@ jobs:
         ./bin/idmd version && sha256sum ./bin/idmd
 
     - name: Test
-      run: make test-xml-short
+      run: make test
 
     - name: Dist
       run: |
