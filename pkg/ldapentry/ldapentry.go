@@ -19,7 +19,7 @@ func ApplyModify(old *ldap.Entry, mod *ldap.ModifyRequest) (newEntry *ldap.Entry
 		return nil, err
 	}
 	// This shouldn't happen if we ge here (TM)
-	if oldDN.EqualFold(modDN) {
+	if !oldDN.EqualFold(modDN) {
 		return nil, ldap.NewError(ldap.LDAPResultUnwillingToPerform, errors.New("DNs do not match"))
 	}
 
