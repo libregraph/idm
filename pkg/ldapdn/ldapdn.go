@@ -1,6 +1,9 @@
 package ldapdn
 
 import (
+	"bytes"
+	"encoding/hex"
+
 	"github.com/go-ldap/ldap/v3"
 	"golang.org/x/text/cases"
 )
@@ -22,10 +25,61 @@ func Normalize(dn *ldap.DN) string {
 			} else if r > 0 {
 				nDN += ","
 			}
-			nDN = nDN + caseFold.String(ava.Type) + "=" + caseFold.String(ava.Value)
+			nDN = nDN + caseFold.String(ava.Type) + "=" + encodeRDNValue(caseFold.String(ava.Value))
 		}
 	}
 	return nDN
+}
+
+// encodeRDNValue applies the DN escaping rules (RFC4514) to the supplied
+// string (the value part of an RDN). Returns the escaped string.
+// Note: This function is taken from https://github.com/go-ldap/ldap/pull/104
+func encodeRDNValue(rDNValue string) string {
+	encodedBuf := bytes.Buffer{}
+
+	escapeChar := func(c byte) {
+		encodedBuf.WriteByte('\\')
+		encodedBuf.WriteByte(c)
+	}
+
+	escapeHex := func(c byte) {
+		encodedBuf.WriteByte('\\')
+		encodedBuf.WriteString(hex.EncodeToString([]byte{c}))
+	}
+
+	for i := 0; i < len(rDNValue); i++ {
+		char := rDNValue[i]
+		if i == 0 && char == ' ' || char == '#' {
+			// Special case leading space or number sign.
+			escapeChar(char)
+			continue
+		}
+		if i == len(rDNValue)-1 && char == ' ' {
+			// Special case trailing space.
+			escapeChar(char)
+			continue
+		}
+
+		switch char {
+		case '"', '+', ',', ';', '<', '>', '\\':
+			// Each of these special characters must be escaped.
+			escapeChar(char)
+			continue
+		}
+
+		if char < ' ' || char > '~' {
+			// All special character escapes are handled first
+			// above. All bytes less than ASCII SPACE and all bytes
+			// greater than ASCII TILDE must be hex-escaped.
+			escapeHex(char)
+			continue
+		}
+
+		// Any other character does not require escaping.
+		encodedBuf.WriteByte(char)
+	}
+
+	return encodedBuf.String()
 }
 
 // ParseNormalize normalizes the passed LDAP DN string by first parsing it (using ldap.ParseDN)
