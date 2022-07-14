@@ -2,7 +2,6 @@ package ldapentry
 
 import (
 	"errors"
-	"log"
 
 	"github.com/go-ldap/ldap/v3"
 	"golang.org/x/text/cases"
@@ -30,12 +29,10 @@ func ApplyModify(old *ldap.Entry, mod *ldap.ModifyRequest) (newEntry *ldap.Entry
 		nType := casefold.String(c.Modification.Type)
 		switch c.Operation {
 		case ldap.AddAttribute:
-			log.Printf("applying add for Attribute: %s", c.Modification.Type)
 			newValues := entryApplyModAdd(newEntry.GetEqualFoldAttributeValues(nType), c.Modification.Vals)
 			newEntry.Attributes = entryReplaceValues(newEntry.Attributes, c.Modification.Type, newValues)
 
 		case ldap.ReplaceAttribute:
-			log.Printf("applying replace for Attribute: %s", c.Modification.Type)
 			// Modifies on RDN attributes need special care to make sure that the rdn Value is not removed
 			for _, rdnAttr := range rdn.Attributes {
 				if nType == casefold.String(rdnAttr.Type) {
@@ -54,7 +51,6 @@ func ApplyModify(old *ldap.Entry, mod *ldap.ModifyRequest) (newEntry *ldap.Entry
 			}
 			newEntry.Attributes = entryReplaceValues(newEntry.Attributes, c.Modification.Type, c.Modification.Vals)
 		case ldap.DeleteAttribute:
-			log.Printf("applying delete for Attribute: %s", c.Modification.Type)
 			for _, rdnAttr := range rdn.Attributes {
 				// Modifies on RDN attributes need special care
 				if nType == casefold.String(rdnAttr.Type) {

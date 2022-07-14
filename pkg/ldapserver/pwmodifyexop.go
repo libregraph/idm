@@ -3,7 +3,6 @@ package ldapserver
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net"
 
 	ber "github.com/go-asn1-ber/asn1-ber"
@@ -26,7 +25,7 @@ func init() {
 
 func HandlePasswordModifyExOp(req *ber.Packet, boundDN string, server *Server, conn net.Conn) (*ber.Packet, error) {
 	var passwordGenerated bool
-	log.Printf("HandlePasswordModifyExOp")
+	logger.V(1).Info("HandlePasswordModifyExOp")
 	if boundDN == "" {
 		return nil, ldap.NewError(ldap.LDAPResultUnwillingToPerform, errors.New("authentication required"))
 	}
@@ -45,7 +44,7 @@ func HandlePasswordModifyExOp(req *ber.Packet, boundDN string, server *Server, c
 		// New password empty means, we're requested to generate a new password
 		var err error
 		if pwReq.NewPassword, err = ldappassword.GenerateRandomPassword(server.GeneratedPasswordLength); err != nil {
-			log.Printf("Failed to generate new password: '%s'", err)
+			logger.Error(err, "Failed to generate new password")
 			return nil, ldap.NewError(ldap.LDAPResultOperationsError, errors.New("Failed to generate new Password"))
 		}
 		passwordGenerated = true
@@ -55,7 +54,7 @@ func HandlePasswordModifyExOp(req *ber.Packet, boundDN string, server *Server, c
 		return nil, ldap.NewError(ldap.LDAPResultOperationsError, err)
 	}
 
-	log.Printf("Modify password extended operation for user '%s'", pwReq.UserIdentity)
+	logger.V(1).Info("Modify password extended operation", "dn", pwReq.UserIdentity)
 
 	fnNames := []string{}
 	for k := range server.PasswordExOpFns {

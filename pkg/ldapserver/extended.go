@@ -2,7 +2,6 @@ package ldapserver
 
 import (
 	"errors"
-	"log"
 	"net"
 
 	ber "github.com/go-asn1-ber/asn1-ber"
@@ -25,7 +24,7 @@ func RegisterExtendedOperation(oid string, handler ExopHandler) {
 func HandleExtendedRequest(req *ber.Packet, boundDN string, server *Server, conn net.Conn) (*ber.Packet, error) {
 	extReq, err := parseExtendedRequest(req)
 	if err != nil {
-		log.Printf(err.Error())
+		logger.V(1).Info("parsing extened request failed", "error", err)
 		return nil, err
 	}
 	if handler, ok := exopRegistry[extReq.OID]; ok {
@@ -70,7 +69,7 @@ func parseExtendedRequest(req *ber.Packet) (*ExtendedRequest, error) {
 		extReq.Body = req.Children[1]
 	}
 
-	log.Printf("Extended Request: %s", extReq.OID)
+	logger.V(1).Info("Extended Request", "oid", extReq.OID)
 	return &extReq, nil
 }
 
