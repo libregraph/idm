@@ -10,6 +10,7 @@ import (
 
 	ber "github.com/go-asn1-ber/asn1-ber"
 	"github.com/go-ldap/ldap/v3"
+	"golang.org/x/text/cases"
 )
 
 const (
@@ -25,7 +26,10 @@ const (
 	FilterExtensibleMatch = ldap.FilterExtensibleMatch
 )
 
-var FilterMap = ldap.FilterMap
+var (
+	FilterMap = ldap.FilterMap
+	casefold  = cases.Fold()
+)
 
 const (
 	FilterSubstringsInitial = ldap.FilterSubstringsInitial
@@ -107,10 +111,11 @@ func ServerApplyFilter(f *ber.Packet, entry *ldap.Entry) (bool, LDAPResultCode) 
 		}
 		attribute := f.Children[0].Value.(string)
 		bytes := f.Children[1].Children[0].Data.Bytes()
-		value := string(bytes)
+		value := casefold.String(string(bytes))
 		for _, a := range entry.Attributes {
 			if strings.EqualFold(a.Name, attribute) {
 				for _, v := range a.Values {
+					v = casefold.String(v)
 					switch f.Children[1].Children[0].Tag {
 					case FilterSubstringsInitial:
 						if strings.HasPrefix(v, value) {
