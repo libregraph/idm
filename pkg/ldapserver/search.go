@@ -74,6 +74,10 @@ func HandleSearchRequest(req *ber.Packet, controls *[]ldap.Control, messageID in
 
 			// size limit
 			if searchReq.SizeLimit > 0 && i >= searchReq.SizeLimit {
+				resultErr = ldap.NewError(
+					ldap.LDAPResultSizeLimitExceeded,
+					errors.New(ldap.LDAPResultCodeMap[ldap.LDAPResultSizeLimitExceeded]),
+				)
 				break
 			}
 			i++
@@ -85,7 +89,7 @@ func HandleSearchRequest(req *ber.Packet, controls *[]ldap.Control, messageID in
 			return &searchResp.Controls, ldap.NewError(ldap.LDAPResultOperationsError, err)
 		}
 	}
-	return &searchResp.Controls, nil
+	return &searchResp.Controls, resultErr
 }
 
 func parseSearchRequest(boundDN string, req *ber.Packet, controls *[]ldap.Control) (*ldap.SearchRequest, error) {
