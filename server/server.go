@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-ldap/ldap/v3"
 	"github.com/sirupsen/logrus"
 
 	"github.com/libregraph/idm/pkg/ldapserver"
@@ -126,12 +127,11 @@ func (s *Server) Serve(ctx context.Context) error {
 
 	var serversWg sync.WaitGroup
 
-	// NOTE(longsleep): ldap package uses standard logger. Set standard logger
-	// to our logger.
+	// NOTE(rhafer): since v3.4.3 the ldap package allows to set a custom logger.
+	// Set that to use to our logger.
 	loggerWriter := logger.WithField("scope", "ldap").WriterLevel(logrus.DebugLevel)
 	defer loggerWriter.Close()
-	log.SetFlags(0)
-	log.SetOutput(loggerWriter)
+	ldap.Logger(log.New(loggerWriter, "", 0))
 
 	ldapHandler := s.LDAPHandler.WithContext(serveCtx)
 	s.LDAPServer.AddFunc("", ldapHandler)
