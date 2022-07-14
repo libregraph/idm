@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/bombsimon/logrusr/v3"
 	"github.com/go-ldap/ldap/v3"
 	"github.com/sirupsen/logrus"
 
@@ -47,6 +48,7 @@ func NewServer(c *Config) (*Server, error) {
 	s.LDAPServer = ldapserver.NewServer()
 	s.LDAPServer.EnforceLDAP = false
 	s.LDAPServer.GeneratedPasswordLength = DefaultGeneratedPasswordLength
+	ldapserver.Logger(logrusr.New(c.Logger))
 
 	var err error
 	switch c.LDAPHandler {

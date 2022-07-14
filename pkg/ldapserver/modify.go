@@ -3,7 +3,6 @@ package ldapserver
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net"
 
 	ber "github.com/go-asn1-ber/asn1-ber"
@@ -19,7 +18,7 @@ func HandleModifyRequest(req *ber.Packet, boundDN string, server *Server, conn n
 		return err
 	}
 
-	log.Printf("Parsed Modification %s", dumpModRequest(modReq))
+	logger.V(1).Info("Parsed Modification", "request", dumpModRequest(modReq))
 
 	fnNames := []string{}
 	for k := range server.ModifyFns {
@@ -88,13 +87,13 @@ func parseModList(req *ber.Packet) ([]ldap.Change, error) {
 			return nil, ldap.NewError(ldap.LDAPResultDecodingError, errors.New("invalid change operation"))
 		case ldap.AddAttribute:
 			change.Operation = ldap.AddAttribute
-			log.Print("op=add")
+			logger.V(1).Info("op=add")
 		case ldap.ReplaceAttribute:
 			change.Operation = ldap.ReplaceAttribute
-			log.Print("op=replace")
+			logger.V(1).Info("op=replace")
 		case ldap.DeleteAttribute:
 			change.Operation = ldap.DeleteAttribute
-			log.Print("op=delete")
+			logger.V(1).Info("op=delete")
 		}
 		attr, err := parseAttribute(c.Children[1], true)
 		if err != nil {
