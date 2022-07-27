@@ -11,7 +11,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.4
-	github.com/go-ldap/ldap/v3 v3.4.3
+	github.com/go-ldap/ldap/v3 v3.4.4
 	github.com/go-ldap/ldif v0.0.0-20200320164324-fd88d9b715b3
 	github.com/go-logr/logr v1.2.3
 	github.com/go-logr/stdr v1.2.2
