@@ -15,9 +15,8 @@ require (
 	github.com/go-ldap/ldif v0.0.0-20200320164324-fd88d9b715b3
 	github.com/go-logr/logr v1.2.3
 	github.com/go-logr/stdr v1.2.2
-	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/orcaman/concurrent-map v1.0.0
-	github.com/prometheus/client_golang v1.12.2
+	github.com/prometheus/client_golang v1.13.0
 	github.com/sethvargo/go-password v0.2.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spacewander/go-suffix-tree v0.0.0-20191010040751-0865e368c784
@@ -26,6 +25,5 @@ require (
 	github.com/trustelem/zxcvbn v1.0.1
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/text v0.3.7
-	google.golang.org/protobuf v1.27.1 // indirect
 	stash.kopano.io/kgol/rndm v1.1.1
 )
