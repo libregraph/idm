@@ -24,6 +24,6 @@ require (
 	github.com/test-go/testify v1.1.4 // indirect
 	github.com/trustelem/zxcvbn v1.0.1
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/text v0.3.7
+	golang.org/x/text v0.3.8
 	stash.kopano.io/kgol/rndm v1.1.1
 )
