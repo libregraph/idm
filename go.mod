@@ -25,5 +25,5 @@ require (
 	github.com/trustelem/zxcvbn v1.0.1
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/text v0.3.8
-	stash.kopano.io/kgol/rndm v1.1.1
+	stash.kopano.io/kgol/rndm v1.1.2
 )
