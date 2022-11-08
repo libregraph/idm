@@ -8,7 +8,7 @@ require (
 	github.com/amoghe/go-crypt v0.0.0-20220222110647-20eada5f5964
 	github.com/armon/go-radix v1.0.0
 	github.com/bombsimon/logrusr/v3 v3.1.0
-	github.com/coreos/go-systemd/v22 v22.4.0
+	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.4
 	github.com/go-ldap/ldap/v3 v3.4.4
