@@ -19,9 +19,9 @@ import (
 
 	"github.com/go-ldap/ldap/v3"
 	"github.com/go-ldap/ldif"
+	"github.com/longsleep/rndm"
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/sirupsen/logrus"
-	"stash.kopano.io/kgol/rndm"
 
 	"github.com/libregraph/idm/pkg/ldapdn"
 	"github.com/libregraph/idm/pkg/ldapserver"
