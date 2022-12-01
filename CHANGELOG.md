@@ -4,6 +4,94 @@
 
 
 
+## v0.4.0 (2022-11-30)
+
+- Migrate to Go rndm module from GitHub
+- Bump github.com/prometheus/client_golang from 1.13.0 to 1.14.0
+- Bump github.com/coreos/go-systemd/v22 from 22.4.0 to 22.5.0
+- Bump github.com/spf13/cobra from 1.6.0 to 1.6.1
+- Bump github.com/bombsimon/logrusr/v3 from 3.0.0 to 3.1.0
+- Bump golang.org/x/text from 0.3.8 to 0.4.0
+- Bump stash.kopano.io/kgol/rndm from 1.1.1 to 1.1.2
+- Bump github.com/spf13/cobra from 1.5.0 to 1.6.0
+- Bump golang.org/x/text from 0.3.7 to 0.3.8
+- Bump github.com/coreos/go-systemd/v22 from 22.3.2 to 22.4.0
+- Bump github.com/prometheus/client_golang from 1.12.2 to 1.13.0
+- Bump github.com/go-ldap/ldap/v3 from 3.4.3 to 3.4.4
+- Switch pkg/ldapserver to logr
+- Set custom logger for go-ldap/ldap
+- Bump github.com/sirupsen/logrus from 1.8.1 to 1.9.0
+- Make substring filter case-insensitve
+- Return proper error code when exceeding size limit
+- Fix normalized DN attribute escaping
+- Switch to go-ldap/ldap for filter (de-)compilation
+- Fix DN compoare condition
+- Switch github action to use `make test`
+- improve DN comparison
+- pass through unparsed DN
+- Address a few linter complaints
+- Implement modify password extended operation for boltdb backend
+- Add backend plumbing for password modify extended operation
+- pwexop: Add support of generating a random password
+- Groundwork for password modify extended operation
+- Bump github.com/spf13/cobra from 1.4.0 to 1.5.0
+- Bump github.com/Songmu/prompter from 0.5.0 to 0.5.1
+- Bump github.com/prometheus/client_golang from 1.12.1 to 1.12.2
+- Bump github.com/go-ldap/ldap/v3 from 3.4.2 to 3.4.3
+- Bump github.com/go-asn1-ber/asn1-ber from 1.5.3 to 1.5.4
+- boltdb: Fix modify replace on RDN Attribute
+- Bump github.com/spf13/cobra from 1.3.0 to 1.4.0
+- boltdb bind: attributeTypes are case-insensitive
+- Tone down debug logging
+- encodeSearchDone might be called with nil doneControls
+- Bump go-crypt to latest master
+- Allow to disable go-crypt related code
+- Fix build on Darwin
+- Bump github.com/go-ldap/ldap/v3 from 3.4.1 to 3.4.2
+- Cleanup logging in boltdb handler
+- Bump github.com/prometheus/client_golang from 1.12.0 to 1.12.1
+- Bump github.com/prometheus/client_golang from 1.11.0 to 1.12.0
+- Introduce new parameter "ldap-admin-dn"
+- Normalize BaseDN and BindDN
+- LDAP Modify support for boltdb Handler
+- Add utils to apply LDAP Modify Request on Entries
+- Create ldapentry and ldapdn helper modules
+- Add shortcut for normalizing DN string
+- Parse and validate incoming LDAP Modify Requests
+- fix typo
+- boltdb: Add getEntryByID method
+- boltdb: Make internal helper methods private
+- Bump all unversioned dependencies to their latest code
+- Implement Delete Support for boltdb Handler
+- Parse and validate incoming LDAP Delete Requests
+- Bump github.com/sirupsen/logrus from 1.6.0 to 1.8.1
+- Bump github.com/spf13/cobra from 1.2.1 to 1.3.0
+- Bump github.com/prometheus/client_golang from 0.9.3 to 1.11.0
+- Bump golang.org/x/text from 0.3.5 to 0.3.7
+- Initial LDAPAdd Support for the boltdb Handler
+- LDAPAdd support for the backend handlers
+- boltdb: Disallow adding an already existing Entry
+- Bump github.com/spf13/cobra from 1.1.3 to 1.2.1
+- Bump github.com/coreos/go-systemd/v22 from 22.3.0 to 22.3.2
+- Enable dependabot for go modules
+- Don't consider linter failures fatal
+- Parse and validate incoming LDAP Add Requests
+- Add basic plumbing for LDAP Add support
+- Update to latest bbolt release
+- Add some initial unit tests for boltdb backend ([#23](https://github.com/libregraph/idm/issues/23/))
+- Tone down golangci-lint annotation to warnings ([#24](https://github.com/libregraph/idm/issues/24/))
+- Add "boltdb export" subcommand
+- Set a default log-level for the boltdb related subcommands
+- Add ability to pass bolt.Options on database
+- Add SimpleBind support for BoltDB
+- Introduce a BoltDB based Database Handler
+- Add options to use other backends than 'ldif'
+- Add TLS support
+- Adjust golangci-lint config
+- Add initial Github Action as a starting point for CI
+- Bump go-ldap to v3.4.1
+
+
 ## v0.3.0 (2021-09-29)
 
 - Add new contributor/authors
