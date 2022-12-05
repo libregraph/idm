@@ -25,5 +25,5 @@ require (
 	github.com/test-go/testify v1.1.4 // indirect
 	github.com/trustelem/zxcvbn v1.0.1
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/text v0.4.0
+	golang.org/x/text v0.5.0
 )
