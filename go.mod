@@ -24,6 +24,6 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/test-go/testify v1.1.4 // indirect
 	github.com/trustelem/zxcvbn v1.0.1
-	go.etcd.io/bbolt v1.3.6
+	go.etcd.io/bbolt v1.3.7
 	golang.org/x/text v0.6.0
 )
