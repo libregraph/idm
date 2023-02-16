@@ -250,11 +250,12 @@ handler:
 		// Dispatch the LDAP operation.
 		switch req.Tag { // LDAP op code.
 		default:
-			responsePacket := encodeLDAPResponse(messageID, ldap.ApplicationAddResponse, ldap.LDAPResultOperationsError, "Unsupported operation: add")
-			if err = sendPacket(conn, responsePacket); err != nil {
-				logger.Error(err, "sendPacket error")
+			op, ok := ldap.ApplicationMap[uint8(req.Tag)]
+			if !ok {
+				op = "unknown"
 			}
-			logger.V(1).Info("Unhandled operation", "type", ldap.ApplicationMap[uint8(req.Tag)], "tag", req.Tag)
+
+			logger.V(1).Info("Unhandled operation", "type", op, "tag", req.Tag)
 			break handler
 
 		case ldap.ApplicationAddRequest:
@@ -302,6 +303,14 @@ handler:
 				break handler
 			}
 
+		case ldap.ApplicationCompareRequest:
+			responsePacket := encodeLDAPResponse(messageID, ldap.ApplicationCompareRequest, ldap.LDAPResultOperationsError, "Unsupported operation: compare")
+			if err = sendPacket(conn, responsePacket); err != nil {
+				logger.Error(err, "sendPacket error")
+			}
+			logger.V(1).Info("Unhandled operation", "type", ldap.ApplicationMap[uint8(req.Tag)], "tag", req.Tag)
+			break handler
+
 		case ldap.ApplicationDelRequest:
 			server.Stats.countDeletes(1)
 			resultCode := uint16(ldap.LDAPResultSuccess)
@@ -343,6 +352,14 @@ handler:
 				logger.Error(err, "sendPacket error")
 				break handler
 			}
+
+		case ldap.ApplicationModifyDNRequest:
+			responsePacket := encodeLDAPResponse(messageID, ldap.ApplicationModifyDNResponse, ldap.LDAPResultOperationsError, "Unsupported operation: modify DN")
+			if err = sendPacket(conn, responsePacket); err != nil {
+				logger.Error(err, "sendPacket error")
+			}
+			logger.V(1).Info("Unhandled operation", "type", ldap.ApplicationMap[uint8(req.Tag)], "tag", req.Tag)
+			break handler
 
 		case ldap.ApplicationModifyRequest:
 			server.Stats.countModifies(1)
