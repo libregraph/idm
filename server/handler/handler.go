@@ -18,6 +18,7 @@ type Handler interface {
 	ldapserver.Deleter
 	ldapserver.Modifier
 	ldapserver.PasswordUpdater
+	ldapserver.Renamer
 	ldapserver.Searcher
 	ldapserver.Closer
 

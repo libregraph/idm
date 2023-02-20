@@ -225,6 +225,34 @@ func (h *boltdbHandler) Modify(boundDN string, req *ldap.ModifyRequest, conn net
 	return ldap.LDAPResultSuccess, nil
 }
 
+func (h *boltdbHandler) ModifyDN(boundDN string, req *ldap.ModifyDNRequest, conn net.Conn) (ldapserver.LDAPResultCode, error) {
+	logger := h.logger.WithFields(logrus.Fields{
+		"op":          "modifyDN",
+		"bind_dn":     boundDN,
+		"remote_addr": conn.RemoteAddr().String(),
+		"entrydn":     req.DN,
+	})
+
+	if !h.writeAllowed(boundDN) {
+		return ldap.LDAPResultInsufficientAccessRights, nil
+	}
+	logger.Debug("Calling boltdb modify DN")
+	if err := h.bdb.EntryModifyDN(req); err != nil {
+		logger.WithError(err).Debug("ldap modifyDN failed")
+		if errors.Is(err, ldbbolt.ErrEntryAlreadyExists) {
+			return ldap.LDAPResultEntryAlreadyExists, nil
+		}
+		ldapError, ok := err.(*ldap.Error)
+		if !ok {
+			return ldap.LDAPResultUnwillingToPerform, err
+		}
+		return ldapserver.LDAPResultCode(ldapError.ResultCode), ldapError.Err
+	}
+	logger.Debug("modify DN succeeded")
+	return ldap.LDAPResultSuccess, nil
+	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
+}
+
 func (h *boltdbHandler) ModifyPasswordExop(boundDN string, req *ldap.PasswordModifyRequest, conn net.Conn) (ldapserver.LDAPResultCode, error) {
 	logger := h.logger.WithFields(logrus.Fields{
 		"op":           "modpw_exop",

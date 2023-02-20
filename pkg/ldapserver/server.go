@@ -41,6 +41,10 @@ type PasswordUpdater interface {
 	ModifyPasswordExop(boundDN string, req *ldap.PasswordModifyRequest, conn net.Conn) (LDAPResultCode, error)
 }
 
+type Renamer interface {
+	ModifyDN(boundDN string, req *ldap.ModifyDNRequest, conn net.Conn) (LDAPResultCode, error)
+}
+
 type Searcher interface {
 	Search(boundDN string, req *ldap.SearchRequest, conn net.Conn) (ServerSearchResult, error)
 }
@@ -56,6 +60,7 @@ type Server struct {
 	BindFns                 map[string]Binder
 	DeleteFns               map[string]Deleter
 	ModifyFns               map[string]Modifier
+	ModifyDNFns             map[string]Renamer
 	PasswordExOpFns         map[string]PasswordUpdater
 	SearchFns               map[string]Searcher
 	CloseFns                map[string]Closer
@@ -81,6 +86,7 @@ func NewServer() *Server {
 	s.BindFns = make(map[string]Binder)
 	s.DeleteFns = make(map[string]Deleter)
 	s.ModifyFns = make(map[string]Modifier)
+	s.ModifyDNFns = make(map[string]Renamer)
 	s.PasswordExOpFns = make(map[string]PasswordUpdater)
 	s.SearchFns = make(map[string]Searcher)
 	s.CloseFns = make(map[string]Closer)
@@ -110,6 +116,10 @@ func (server *Server) DeleteFunc(baseDN string, f Deleter) {
 
 func (server *Server) ModifyFunc(baseDN string, f Modifier) {
 	server.ModifyFns[baseDN] = f
+}
+
+func (server *Server) ModifyDNFunc(baseDN string, f Renamer) {
+	server.ModifyDNFns[baseDN] = f
 }
 
 func (server *Server) PasswordExOpFunc(baseDN string, f PasswordUpdater) {
@@ -354,7 +364,22 @@ handler:
 			}
 
 		case ldap.ApplicationModifyDNRequest:
-			responsePacket := encodeLDAPResponse(messageID, ldap.ApplicationModifyDNResponse, ldap.LDAPResultOperationsError, "Unsupported operation: modify DN")
+			server.Stats.countModifyDNs(1)
+			resultCode := uint16(ldap.LDAPResultSuccess)
+			resultMsg := ""
+			if err = HandleModifyDNRequest(req, boundDN, server, conn); err != nil {
+				var lErr *ldap.Error
+				if errors.As(err, &lErr) {
+					resultCode = lErr.ResultCode
+					if lErr.Err != nil {
+						resultMsg = lErr.Err.Error()
+					}
+				} else {
+					resultCode = ldap.LDAPResultOperationsError
+					resultMsg = err.Error()
+				}
+			}
+			responsePacket := encodeLDAPResponse(messageID, ldap.ApplicationModifyDNResponse, LDAPResultCode(resultCode), resultMsg)
 			if err = sendPacket(conn, responsePacket); err != nil {
 				logger.Error(err, "sendPacket error")
 			}

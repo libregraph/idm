@@ -311,6 +311,77 @@ func (bdb *LdbBolt) entryModifyWithTxn(tx *bolt.Tx, id uint64, entry *ldap.Entry
 	return nil
 }
 
+func (bdb *LdbBolt) EntryModifyDN(req *ldap.ModifyDNRequest) error {
+	olddn, err := ldap.ParseDN(req.DN)
+	if err != nil {
+		return err
+	}
+
+	newrdn, err := ldap.ParseDN(req.NewRDN)
+	if err != nil {
+		return err
+	}
+
+	var newDN ldap.DN
+
+	newDN.RDNs = []*ldap.RelativeDN{newrdn.RDNs[0]}
+	newDN.RDNs = append(newDN.RDNs, olddn.RDNs[1:]...)
+
+	err = bdb.db.Update(func(tx *bolt.Tx) error {
+		flatNewDN := ldapdn.Normalize(&newDN)
+		flatOldDN := ldapdn.Normalize(olddn)
+
+		entry, id, innerErr := bdb.getEntryByDN(tx, flatOldDN)
+		if innerErr != nil {
+			return innerErr
+		}
+
+		// error out if there is an entry with the new name already
+		id = bdb.getIDByDN(tx, flatNewDN)
+		if id != 0 {
+			return ErrEntryAlreadyExists
+		}
+
+		// only allow renaming leaf entries
+		childIds := bdb.getChildrenIDs(tx, id)
+		if len(childIds) > 0 {
+			return ErrNonLeafEntry
+		}
+
+		entry.DN = flatNewDN
+
+		modReq := ldap.ModifyRequest{
+			DN: entry.DN,
+		}
+
+		// create modify operation for the change attribute values
+		if req.DeleteOldRDN {
+			oldRDN := olddn.RDNs[0]
+			for _, ava := range oldRDN.Attributes {
+				modReq.Delete(ava.Type, []string{ava.Value})
+			}
+		}
+		for _, ava := range newrdn.RDNs[0].Attributes {
+			modReq.Add(ava.Type, []string{ava.Value})
+		}
+		innerErr = bdb.entryModifyWithTxn(tx, id, entry, &modReq)
+		if innerErr != nil {
+			return innerErr
+		}
+
+		// update the dn2id index
+		dn2id := tx.Bucket([]byte("dn2id"))
+		if err := dn2id.Put([]byte(flatNewDN), idToBytes(id)); err != nil {
+			return err
+		}
+		if err := dn2id.Delete([]byte(flatOldDN)); err != nil {
+			return err
+		}
+		return nil
+	})
+	return err
+}
+
 func (bdb *LdbBolt) UpdatePassword(req *ldap.PasswordModifyRequest) error {
 	ndn, err := ldapdn.ParseNormalize(req.UserIdentity)
 	if err != nil {
