@@ -173,6 +173,10 @@ func (h *ldifMiddleware) Modify(_ string, _ *ldap.ModifyRequest, _ net.Conn) (ld
 	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
 }
 
+func (h *ldifMiddleware) ModifyDN(_ string, _ *ldap.ModifyDNRequest, _ net.Conn) (ldapserver.LDAPResultCode, error) {
+	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
+}
+
 func (h *ldifMiddleware) ModifyPasswordExop(_ string, _ *ldap.PasswordModifyRequest, _ net.Conn) (ldapserver.LDAPResultCode, error) {
 	return ldap.LDAPResultUnwillingToPerform, errors.New("unsupported operation")
 }
