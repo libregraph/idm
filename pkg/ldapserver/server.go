@@ -382,9 +382,8 @@ handler:
 			responsePacket := encodeLDAPResponse(messageID, ldap.ApplicationModifyDNResponse, LDAPResultCode(resultCode), resultMsg)
 			if err = sendPacket(conn, responsePacket); err != nil {
 				logger.Error(err, "sendPacket error")
+				break handler
 			}
-			logger.V(1).Info("Unhandled operation", "type", ldap.ApplicationMap[uint8(req.Tag)], "tag", req.Tag)
-			break handler
 
 		case ldap.ApplicationModifyRequest:
 			server.Stats.countModifies(1)

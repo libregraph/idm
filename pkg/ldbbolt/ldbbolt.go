@@ -331,15 +331,14 @@ func (bdb *LdbBolt) EntryModifyDN(req *ldap.ModifyDNRequest) error {
 		flatNewDN := ldapdn.Normalize(&newDN)
 		flatOldDN := ldapdn.Normalize(olddn)
 
+		// error out if there is an entry with the new name already
+		if id := bdb.getIDByDN(tx, flatNewDN); id != 0 {
+			return ErrEntryAlreadyExists
+		}
+
 		entry, id, innerErr := bdb.getEntryByDN(tx, flatOldDN)
 		if innerErr != nil {
 			return innerErr
-		}
-
-		// error out if there is an entry with the new name already
-		id = bdb.getIDByDN(tx, flatNewDN)
-		if id != 0 {
-			return ErrEntryAlreadyExists
 		}
 
 		// only allow renaming leaf entries
