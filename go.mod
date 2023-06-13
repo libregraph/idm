@@ -23,7 +23,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/trustelem/zxcvbn v1.0.1
 	go.etcd.io/bbolt v1.3.7
-	golang.org/x/text v0.9.0
+	golang.org/x/text v0.10.0
 )
 
 require (
