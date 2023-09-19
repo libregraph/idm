@@ -16,7 +16,7 @@ require (
 	github.com/go-logr/stdr v1.2.2
 	github.com/longsleep/rndm v1.2.0
 	github.com/orcaman/concurrent-map v1.0.0
-	github.com/prometheus/client_golang v1.15.1
+	github.com/prometheus/client_golang v1.16.0
 	github.com/sethvargo/go-password v0.2.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spacewander/go-suffix-tree v0.0.0-20191010040751-0865e368c784
@@ -38,7 +38,7 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
-	github.com/prometheus/procfs v0.9.0 // indirect
+	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/test-go/testify v1.1.4 // indirect
 	golang.org/x/crypto v0.13.0 // indirect
