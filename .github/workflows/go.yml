@@ -25,12 +25,11 @@ jobs:
       run: make vendor
 
     - name: Lint
-      uses: golangci/golangci-lint-action@v2
+      uses: golangci/golangci-lint-action@v4
       with:
         version: latest
         skip-pkg-cache: true
         skip-build-cache: true
-        skip-go-installation: true
         only-new-issues: true
 
     - name: Build
