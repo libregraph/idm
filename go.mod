@@ -10,7 +10,7 @@ require (
 	github.com/bombsimon/logrusr/v3 v3.1.0
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/go-asn1-ber/asn1-ber v1.5.5
-	github.com/go-ldap/ldap/v3 v3.4.7
+	github.com/go-ldap/ldap/v3 v3.4.8
 	github.com/go-ldap/ldif v0.0.0-20200320164324-fd88d9b715b3
 	github.com/go-logr/logr v1.4.1
 	github.com/go-logr/stdr v1.2.2
