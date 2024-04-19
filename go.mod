@@ -1,6 +1,7 @@
 module github.com/libregraph/idm
 
 go 1.21
+toolchain go1.22.2
 
 require (
 	github.com/Songmu/prompter v0.5.1
@@ -17,7 +18,7 @@ require (
 	github.com/longsleep/rndm v1.2.0
 	github.com/orcaman/concurrent-map v1.0.0
 	github.com/prometheus/client_golang v1.19.0
-	github.com/sethvargo/go-password v0.2.0
+	github.com/sethvargo/go-password v0.3.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spacewander/go-suffix-tree v0.0.0-20191010040751-0865e368c784
 	github.com/spf13/cobra v1.8.0
