@@ -27,8 +27,8 @@ github.com/dlclark/regexp2 v1.4.0/go.mod h1:2pZnwuY/m+8K6iRw6wQdMtk+rH5tNGR1i55k
 github.com/go-asn1-ber/asn1-ber v1.3.1/go.mod h1:hEBeB/ic+5LoWskz+yKT7vGhhPYkProFKoKdwZRWMe0=
 github.com/go-asn1-ber/asn1-ber v1.4.1/go.mod h1:hEBeB/ic+5LoWskz+yKT7vGhhPYkProFKoKdwZRWMe0=
 github.com/go-asn1-ber/asn1-ber v1.5.5/go.mod h1:hEBeB/ic+5LoWskz+yKT7vGhhPYkProFKoKdwZRWMe0=
-github.com/go-asn1-ber/asn1-ber v1.5.6 h1:CYsqysemXfEaQbyrLJmdsCRuufHoLa3P/gGWGl5TDrM=
-github.com/go-asn1-ber/asn1-ber v1.5.6/go.mod h1:hEBeB/ic+5LoWskz+yKT7vGhhPYkProFKoKdwZRWMe0=
+github.com/go-asn1-ber/asn1-ber v1.5.7 h1:DTX+lbVTWaTw1hQ+PbZPlnDZPEIs0SS/GCZAl535dDk=
+github.com/go-asn1-ber/asn1-ber v1.5.7/go.mod h1:hEBeB/ic+5LoWskz+yKT7vGhhPYkProFKoKdwZRWMe0=
 github.com/go-ldap/ldap/v3 v3.1.7/go.mod h1:5Zun81jBTabRaI8lzN7E1JjyEl1g6zI6u9pd8luAK4Q=
 github.com/go-ldap/ldap/v3 v3.4.8 h1:loKJyspcRezt2Q3ZRMq2p/0v8iOurlmeXDPw6fikSvQ=
 github.com/go-ldap/ldap/v3 v3.4.8/go.mod h1:qS3Sjlu76eHfHGpUdWkAXQTw4beih+cHsco2jXlIXrk=
