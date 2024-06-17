@@ -22,7 +22,7 @@ require (
 	github.com/sethvargo/go-password v0.3.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spacewander/go-suffix-tree v0.0.0-20191010040751-0865e368c784
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.8.1
 	github.com/trustelem/zxcvbn v1.0.1
 	go.etcd.io/bbolt v1.3.10
 	golang.org/x/text v0.16.0
