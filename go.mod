@@ -25,7 +25,7 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/trustelem/zxcvbn v1.0.1
 	go.etcd.io/bbolt v1.3.11
-	golang.org/x/text v0.20.0
+	golang.org/x/text v0.21.0
 )
 
 require (
