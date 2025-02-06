@@ -1,8 +1,7 @@
 module github.com/libregraph/idm
 
 go 1.22
-
-toolchain go1.22.2
+toolchain go1.23.6
 
 require (
 	github.com/Songmu/prompter v0.5.1
@@ -24,7 +23,7 @@ require (
 	github.com/spacewander/go-suffix-tree v0.0.0-20191010040751-0865e368c784
 	github.com/spf13/cobra v1.8.1
 	github.com/trustelem/zxcvbn v1.0.1
-	go.etcd.io/bbolt v1.3.11
+	go.etcd.io/bbolt v1.4.0
 	golang.org/x/text v0.22.0
 )
 
@@ -41,10 +40,10 @@ require (
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/test-go/testify v1.1.4 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/term v0.27.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )
