@@ -1,6 +1,6 @@
 module github.com/libregraph/idm
 
-go 1.23
+go 1.23.0
 
 toolchain go1.23.6
 
@@ -25,7 +25,7 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/trustelem/zxcvbn v1.0.1
 	go.etcd.io/bbolt v1.4.0
-	golang.org/x/text v0.22.0
+	golang.org/x/text v0.23.0
 )
 
 require (
