@@ -11,8 +11,8 @@ require (
 	github.com/armon/go-radix v1.0.0
 	github.com/bombsimon/logrusr/v3 v3.1.0
 	github.com/coreos/go-systemd/v22 v22.5.0
-	github.com/go-asn1-ber/asn1-ber v1.5.7
-	github.com/go-ldap/ldap/v3 v3.4.10
+	github.com/go-asn1-ber/asn1-ber v1.5.8-0.20250403174932-29230038a667
+	github.com/go-ldap/ldap/v3 v3.4.11
 	github.com/go-ldap/ldif v0.0.0-20200320164324-fd88d9b715b3
 	github.com/go-logr/logr v1.4.2
 	github.com/go-logr/stdr v1.2.2
@@ -42,8 +42,8 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/test-go/testify v1.1.4 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/term v0.27.0 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/term v0.30.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 )
