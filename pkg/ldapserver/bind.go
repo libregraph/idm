@@ -15,6 +15,7 @@ import (
 func HandleBindRequest(req *ber.Packet, fns map[string]Binder, conn net.Conn) (resultCode LDAPResultCode) {
 	defer func() {
 		if r := recover(); r != nil {
+			logger.Error(nil, "Panic during bind request", "panic", r, "remote_addr", conn.RemoteAddr().String())
 			resultCode = ldap.LDAPResultOperationsError
 		}
 	}()

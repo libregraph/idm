@@ -20,12 +20,23 @@ type ldifEntry struct {
 }
 
 func (entry *ldifEntry) validatePassword(bindSimplePw string) error {
+	// Check if UserPassword attribute exists
+	if entry.UserPassword == nil {
+		return fmt.Errorf("user has no password attribute")
+	}
+	
+	// Check if password values exist
+	if len(entry.UserPassword.Values) == 0 {
+		return fmt.Errorf("user password attribute has no values")
+	}
+	
+	// Existing validation logic
 	match, err := ldappassword.Validate(bindSimplePw, entry.UserPassword.Values[0])
 	if err != nil {
 		return err
 	}
 	if !match {
-		return fmt.Errorf("password mismatch")
+		return fmt.Errorf("invalid credentials")
 	}
 	return nil
 }
