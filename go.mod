@@ -22,7 +22,7 @@ require (
 	github.com/sethvargo/go-password v0.3.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spacewander/go-suffix-tree v0.0.0-20191010040751-0865e368c784
-	github.com/spf13/cobra v1.9.1
+	github.com/spf13/cobra v1.10.1
 	github.com/trustelem/zxcvbn v1.0.1
 	go.etcd.io/bbolt v1.4.3
 	golang.org/x/text v0.28.0
@@ -40,7 +40,7 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.65.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/test-go/testify v1.1.4 // indirect
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
