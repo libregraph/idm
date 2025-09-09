@@ -73,7 +73,7 @@ func TestApplyModifyDelete(t *testing.T) {
 	}
 	values := e.GetAttributeValues("displayName")
 	if len(values) != 0 {
-		t.Errorf("Deleting all values from Attribute failed")
+		t.Error("Deleting all values from Attribute failed")
 	}
 
 	mr.Changes = []ldap.Change{}
@@ -84,7 +84,7 @@ func TestApplyModifyDelete(t *testing.T) {
 	}
 	values = e.GetAttributeValues("multivalue")
 	if len(values) != 1 || values[0] != "value2" {
-		t.Errorf("Deleting a non-RDN Values from RDN Attribute failed")
+		t.Error("Deleting a non-RDN Values from RDN Attribute failed")
 	}
 }
 
@@ -95,22 +95,22 @@ func TestApplyModifyAddValue(t *testing.T) {
 	mr.Add("mail", []string{"other@example"})
 	e, err := ApplyModify(userEntry, mr)
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err.Error())
 	}
 	vals := e.GetAttributeValues("mail")
 	if len(vals) != 2 {
-		t.Errorf("Add attribute value failed")
+		t.Error("Add attribute value failed")
 	}
 
 	mr.Changes = []ldap.Change{}
 	mr.Add("newAttribute", []string{"value"})
 	e, err = ApplyModify(userEntry, mr)
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err.Error())
 	}
 	val := e.GetAttributeValue("newAttribute")
 	if val != "value" {
-		t.Errorf("Add attribute value failed")
+		t.Error("Add attribute value failed")
 	}
 }
 
@@ -121,11 +121,11 @@ func TestApplyModifyReplace(t *testing.T) {
 	mr.Replace("mail", []string{"other@example"})
 	e, err := ApplyModify(userEntry, mr)
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err.Error())
 	}
 	vals := e.GetAttributeValues("mail")
 	if len(vals) != 1 || vals[0] != "other@example" {
-		t.Errorf("Replace attribute value failed")
+		t.Error("Replace attribute value failed")
 	}
 }
 
@@ -148,11 +148,11 @@ func TestApplyModifyReplaceRDN(t *testing.T) {
 	mr.Replace("uid", []string{"user", "otheruser"})
 	e, err := ApplyModify(userEntry, mr)
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err.Error())
 	}
 	vals := e.GetAttributeValues("uid")
 	if len(vals) != 2 {
-		t.Errorf("Unexpected number of values after replace")
+		t.Error("Unexpected number of values after replace")
 	}
 
 	for _, v := range []string{"user", "otheruser"} {
