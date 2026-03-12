@@ -1,6 +1,6 @@
 module github.com/libregraph/idm
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/Songmu/prompter v0.5.1
@@ -23,7 +23,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/trustelem/zxcvbn v1.0.1
 	go.etcd.io/bbolt v1.4.3
-	golang.org/x/text v0.34.0
+	golang.org/x/text v0.35.0
 )
 
 require (
