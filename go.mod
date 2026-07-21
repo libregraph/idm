@@ -10,7 +10,7 @@ require (
 	github.com/bombsimon/logrusr/v3 v3.1.0
 	github.com/coreos/go-systemd/v22 v22.7.0
 	github.com/go-asn1-ber/asn1-ber v1.5.8
-	github.com/go-ldap/ldap/v3 v3.4.13
+	github.com/go-ldap/ldap/v3 v3.4.14
 	github.com/go-ldap/ldif v0.0.0-20200320164324-fd88d9b715b3
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/stdr v1.2.2
@@ -42,8 +42,8 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/test-go/testify v1.1.4 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
-	golang.org/x/crypto v0.52.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
-	golang.org/x/term v0.43.0 // indirect
+	golang.org/x/crypto v0.54.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/term v0.45.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 )
