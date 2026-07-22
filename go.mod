@@ -17,7 +17,7 @@ require (
 	github.com/longsleep/rndm v1.2.0
 	github.com/orcaman/concurrent-map v1.0.0
 	github.com/prometheus/client_golang v1.23.2
-	github.com/sethvargo/go-password v0.3.1
+	github.com/sethvargo/go-password v0.4.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spacewander/go-suffix-tree v0.0.0-20191010040751-0865e368c784
 	github.com/spf13/cobra v1.10.2
